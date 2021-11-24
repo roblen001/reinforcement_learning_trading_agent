@@ -1,7 +1,7 @@
 '''This is a custom cryptocurrency trading environment created with
     openAi gym.
 
-    modified from: https://github.com/pythonlessons/RL-Bitcoin-trading-bot/tree/main/RL-Bitcoin-trading-bot_1
+    modified from: https://github.com/pythonlessons/RL-Bitcoin-trading-bot
     author: Roberto Lentini
     email: roberto.lentini@mail.utoronto.ca
     date: November 24th 2021
@@ -13,18 +13,21 @@
         - Reward function is now calculating the percent gain difference
             between the benchmark, the increase of eth price over time
             and the profit in percent from trading.
+        - Added a debug mode to produce a historical order data txt file 
+            to make sure the order history align with what is expected when using the bot.
 '''
 import pandas as pd
 import numpy as np
 import random
 from collections import deque
 from gym import spaces
+from utils import Write_to_file
 
 
 class EthereumEnv:
     """Custom Ethereum Environment that follows gym interface"""
 
-    def __init__(self, df, initial_balance=1000, lookback_window_size=50, trading_fee=0.1):
+    def __init__(self, df, initial_balance=1000, lookback_window_size=50, trading_fee=0.1, render_range=100, debug_mode=False):
         '''Initiating the parameters.
 
             - df: cleaned pandas dataframe with historical crypto data.
@@ -32,6 +35,7 @@ class EthereumEnv:
             - lookback_window_size: int of number of candles we want
                 our agent to see. (the candle period, ie daily, hourly... depends on the data given)
             - trading_fee: the percent of fee payed on every order.
+            -
         '''
         super(EthereumEnv, self).__init__()
         # TODO: add assertion to check the data
@@ -41,7 +45,8 @@ class EthereumEnv:
         self.df_total_steps = len(self.df) - 1
         self.initial_balance = initial_balance
         self.lookback_window_size = lookback_window_size
-
+        self.render_range = render_range  # render range in visualization
+        self.debug_mode = debug_mode
         # Orders history contains the balance, net_worth, crypto_bought, crypto_sold, crypto_held values for the last lookback_window_size steps
         self.orders_history = deque(maxlen=self.lookback_window_size)
 
@@ -67,6 +72,9 @@ class EthereumEnv:
             - env_step_size: int changes the step size for training the data.
                 An alternative to random initial offset.
         '''
+        self.trades = deque(
+            maxlen=self.render_range)  # limited orders memory for visualization
+
         self.balance = self.initial_balance
         self.net_worth = self.initial_balance
         self.prev_net_worth = self.initial_balance
@@ -125,15 +133,21 @@ class EthereumEnv:
 
         # Set the current price to close
         current_price = self.df.loc[self.current_step, 'Close']
+        Date = self.df.loc[self.current_step, 'Date']  # for visualization
+        High = self.df.loc[self.current_step, 'High']  # for visualization
+        Low = self.df.loc[self.current_step, 'Low']  # for visualization
 
         if action == 0:  # Hold
             pass
         # Buy with 100% of current balance TODO: confirm the math for crypto bought
-        elif action == 1 and self.balance > 0:
+        # Agent will only buy if it has at least more then 10% of the initial money remaining
+        elif action == 1 and self.balance > self.initial_balance/10:
             self.crypto_bought = (
                 self.balance - (self.trading_fee * self.balance)) / current_price
             self.balance -= self.crypto_bought * current_price
             self.crypto_held += self.crypto_bought
+            self.trades.append({'Date': Date, 'High': High, 'Low': Low,
+                               'total': self.crypto_bought, 'type': "buy"})
 
         # Sell 100% of current crypto held TODO: confirm the math for balance
         elif action == 2 and self.crypto_held > 0:
@@ -141,6 +155,8 @@ class EthereumEnv:
             self.balance += (self.crypto_sold * current_price) - \
                 ((self.crypto_sold * current_price) * self.trading_fee)
             self.crypto_held -= self.crypto_sold
+            self.trades.append(
+                {'Date': Date, 'High': High, 'Low': Low, 'total': self.crypto_sold, 'type': "sell"})
 
         self.prev_net_worth = self.net_worth
         self.net_worth = self.balance + self.crypto_held * current_price
@@ -148,6 +164,8 @@ class EthereumEnv:
         self.orders_history.append(
             [self.balance, self.net_worth, self.crypto_bought, self.crypto_sold, self.crypto_held])
 
+        if self.debug_mode:
+            Write_to_file(Date, self.orders_history[-1])
         # Calculate reward
         # Reward is the diff between total trading profits in percent - total eth gains in percent
         # TODO: maked sure the reward functions is doing the proper calculations
@@ -157,6 +175,7 @@ class EthereumEnv:
                           self.initial_balance) * 100
         reward = profit_percent - buy_and_hold_gains_percent
 
+        # TODO: this feel useless
         if self.net_worth <= self.initial_balance/2:
             done = True
         else:

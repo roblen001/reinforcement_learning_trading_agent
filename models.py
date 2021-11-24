@@ -1,6 +1,6 @@
 '''Methods the agent uses to trade in the environment
 
-    modified from: https://github.com/pythonlessons/RL-Bitcoin-trading-bot/tree/main/RL-Bitcoin-trading-bot_1
+    modified from: https://github.com/pythonlessons/RL-Bitcoin-trading-bot
     author: Roberto Lentini
     email: roberto.lentini@mail.utoronto.ca
     date: November 24th 2021
@@ -16,7 +16,7 @@ def Random_games(env, train_episodes=50, training_batch_size=500):
 
         - env: the gym environment the agent will learn to act in.
         - train_episodes: the number of episodes the agent will use to train.
-        - training_batch_size: 
+        - training_batch_size: the ammount of steps per episode 
     '''
     average_net_worth = 0
     for episode in range(train_episodes):
