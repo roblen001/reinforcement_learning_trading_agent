@@ -11,7 +11,7 @@
 import numpy as np
 
 
-def Random_games(env, train_episodes=50, training_batch_size=500):
+def Random_games(env, visualize, train_episodes=50, training_batch_size=500):
     '''The agent picks times to sell and buy the currency at random.
 
         - env: the gym environment the agent will learn to act in.
@@ -23,7 +23,7 @@ def Random_games(env, train_episodes=50, training_batch_size=500):
         state = env.reset(env_steps_size=training_batch_size)
 
         while True:
-            env.render()
+            env.render(visualize)
 
             action = np.random.randint(3, size=1)[0]
 

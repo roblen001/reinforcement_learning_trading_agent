@@ -21,8 +21,7 @@ import numpy as np
 import random
 from collections import deque
 from gym import spaces
-from utils import Write_to_file
-
+from utils import Write_to_file, TradingGraph
 
 class EthereumEnv:
     """Custom Ethereum Environment that follows gym interface"""
@@ -35,7 +34,7 @@ class EthereumEnv:
             - lookback_window_size: int of number of candles we want
                 our agent to see. (the candle period, ie daily, hourly... depends on the data given)
             - trading_fee: the percent of fee payed on every order.
-            -
+            - render_range: amount of candles to render in chart.
         '''
         super(EthereumEnv, self).__init__()
         # TODO: add assertion to check the data
@@ -72,6 +71,7 @@ class EthereumEnv:
             - env_step_size: int changes the step size for training the data.
                 An alternative to random initial offset.
         '''
+        self.visualization = TradingGraph(self.render_range) # init visualization   
         self.trades = deque(
             maxlen=self.render_range)  # limited orders memory for visualization
 
@@ -186,5 +186,19 @@ class EthereumEnv:
         return obs, reward, done
 
     # render environment
-    def render(self):
-        print(f'Step: {self.current_step}, Net Worth: {self.net_worth}')
+    def render(self, visualize = False):
+        '''Renders plot and output while agent is running.
+
+            - visualize: bool, if True then a graph visualization will appear.
+        '''
+        if visualize:
+            Date = self.df.loc[self.current_step, 'Date']
+            Open = self.df.loc[self.current_step, 'Open']
+            Close = self.df.loc[self.current_step, 'Close']
+            High = self.df.loc[self.current_step, 'High']
+            Low = self.df.loc[self.current_step, 'Low']
+            Volume = self.df.loc[self.current_step, 'Volume']
+
+            # Render the environment to the screen
+            self.visualization.render(Date, Open, High, Low, Close, Volume, self.net_worth, self.trades)
+

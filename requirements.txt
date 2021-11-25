@@ -4,3 +4,5 @@ random
 gym
 os
 datetime
+matplotlib 
+mplfinance
