@@ -22,4 +22,5 @@ train_env = EthereumEnv(
     train_df, lookback_window_size=lookback_window_size)
 test_env = EthereumEnv(test_df, lookback_window_size=lookback_window_size)
 
-Random_games(train_env, visualize=True, train_episodes=10, training_batch_size=500)
+Random_games(train_env, visualize=False,
+             train_episodes=50, training_batch_size=500)

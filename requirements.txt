@@ -6,3 +6,4 @@ os
 datetime
 matplotlib 
 mplfinance
+tensorflow

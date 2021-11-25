@@ -15,6 +15,9 @@
             and the profit in percent from trading.
         - Added a debug mode to produce a historical order data txt file 
             to make sure the order history align with what is expected when using the bot.
+        - Completly changing the graphing feature in the env. No longer renders during but only
+            plots after testing. New candle plot function added.
+        - Keeping track of episode rewards for performance visualization.
 '''
 import pandas as pd
 import numpy as np
@@ -23,10 +26,11 @@ from collections import deque
 from gym import spaces
 from utils import Write_to_file, TradingGraph
 
+
 class EthereumEnv:
     """Custom Ethereum Environment that follows gym interface"""
 
-    def __init__(self, df, initial_balance=1000, lookback_window_size=50, trading_fee=0.1, render_range=100, debug_mode=False):
+    def __init__(self, df, initial_balance=1000, lookback_window_size=50, trading_fee=0.1, debug_mode=False):
         '''Initiating the parameters.
 
             - df: cleaned pandas dataframe with historical crypto data.
@@ -44,7 +48,6 @@ class EthereumEnv:
         self.df_total_steps = len(self.df) - 1
         self.initial_balance = initial_balance
         self.lookback_window_size = lookback_window_size
-        self.render_range = render_range  # render range in visualization
         self.debug_mode = debug_mode
         # Orders history contains the balance, net_worth, crypto_bought, crypto_sold, crypto_held values for the last lookback_window_size steps
         self.orders_history = deque(maxlen=self.lookback_window_size)
@@ -71,13 +74,11 @@ class EthereumEnv:
             - env_step_size: int changes the step size for training the data.
                 An alternative to random initial offset.
         '''
-        self.visualization = TradingGraph(self.render_range) # init visualization   
-        self.trades = deque(
-            maxlen=self.render_range)  # limited orders memory for visualization
-
+        self.trades = deque()  # for visualization
+        self.episode_reward = 0
         self.balance = self.initial_balance
         self.net_worth = self.initial_balance
-        self.prev_net_worth = self.initial_balance
+        self.episode_reward = 0
         self.crypto_held = 0
         self.crypto_sold = 0
         self.crypto_bought = 0
@@ -158,7 +159,6 @@ class EthereumEnv:
             self.trades.append(
                 {'Date': Date, 'High': High, 'Low': Low, 'total': self.crypto_sold, 'type': "sell"})
 
-        self.prev_net_worth = self.net_worth
         self.net_worth = self.balance + self.crypto_held * current_price
 
         self.orders_history.append(
@@ -174,7 +174,7 @@ class EthereumEnv:
         profit_percent = ((self.net_worth - self.initial_balance) /
                           self.initial_balance) * 100
         reward = profit_percent - buy_and_hold_gains_percent
-
+        self.episode_reward += reward
         # TODO: this feel useless
         if self.net_worth <= self.initial_balance/2:
             done = True
@@ -183,10 +183,12 @@ class EthereumEnv:
 
         obs = self._next_observation()
 
+        # info = [self.trades, self.net_worth]
+
         return obs, reward, done
 
     # render environment
-    def render(self, visualize = False):
+    def render(self, visualize=False):
         '''Renders plot and output while agent is running.
 
             - visualize: bool, if True then a graph visualization will appear.
@@ -200,5 +202,5 @@ class EthereumEnv:
             Volume = self.df.loc[self.current_step, 'Volume']
 
             # Render the environment to the screen
-            self.visualization.render(Date, Open, High, Low, Close, Volume, self.net_worth, self.trades)
-
+            self.visualization.render(
+                Date, Open, High, Low, Close, Volume, self.net_worth, self.trades)
