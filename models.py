@@ -67,15 +67,32 @@ if len(gpus) > 0:
     except RuntimeError:
         pass
 
-# ================== RANDOM ORDERS =================
-
+# ================== PROXIMAL POLICY OPTIMIZATION MODEL =================
+'''About the model: PPO is a actor critc model (A2C) with a handful of changes:
+    1/ Trains by using a small batch of expiriences. The batch is used to 
+        update the policy. A new batch is then sampled and the process continues.
+        This slowly changes the policy to a better version.
+    2/ New formula to estimate policy gradient. Now uses the ratio between
+        between the new and the old policy scaled by the advantage. 
+    3/ New formula for estimating advantage.
+'''
 
 class Actor_Model:
+    '''The actor neural network decides what action to take based on 
+        a certain policy.
+    '''
     def __init__(self, input_shape, action_space, lr, optimizer):
+        '''Initializing parameters
+
+            - input_shape: shape of the observation space.
+            - action_space: shape of the action space.
+            - 
+        '''
         X_input = Input(input_shape)
         self.action_space = action_space
 
-        X = Flatten(input_shape=input_shape)(X_input)
+        # 512 x 256 x 64 three layer neural network
+        X = Flatten(input_shape=input_shape)(X_input) # making input shape (n,1)
         X = Dense(512, activation="relu")(X)
         X = Dense(256, activation="relu")(X)
         X = Dense(64, activation="relu")(X)
