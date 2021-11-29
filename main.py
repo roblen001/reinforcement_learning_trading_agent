@@ -9,12 +9,12 @@
         - Added function descriptions.
 '''
 import pandas as pd
-from env import EthereumEnv
+from env import EthereumEnv, train_agent, test_agent
 from models import Random_games
 
 df = pd.read_csv('ETHUSD.csv')
 
-lookback_window_size = 10
+lookback_window_size = 50
 train_df = df[:-720-lookback_window_size]
 test_df = df[-720-lookback_window_size:]  # 30 days
 
@@ -22,5 +22,6 @@ train_env = EthereumEnv(
     train_df, lookback_window_size=lookback_window_size)
 test_env = EthereumEnv(test_df, lookback_window_size=lookback_window_size)
 
-Random_games(train_env, visualize=False,
+
+Random_games(test_env, visualize=False,
              train_episodes=50, training_batch_size=500)

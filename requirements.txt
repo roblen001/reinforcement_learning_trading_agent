@@ -7,3 +7,4 @@ datetime
 matplotlib 
 mplfinance
 tensorflow
+tensorboardX
