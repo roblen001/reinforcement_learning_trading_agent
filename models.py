@@ -27,11 +27,10 @@ def Random_games(env, visualize, train_episodes=50, training_batch_size=500):
         - training_batch_size: the ammount of steps per episode
     '''
     average_net_worth = 0
-    average_reward = 0
     avg_episode_reward_list = []
     net_worth_list = []
     for episode in range(train_episodes):
-        state = env.reset(env_steps_size=training_batch_size)
+        state = env.reset()
 
         while True:
             env.render(visualize)
@@ -69,30 +68,33 @@ if len(gpus) > 0:
 
 # ================== PROXIMAL POLICY OPTIMIZATION MODEL =================
 '''About the model: PPO is a actor critc model (A2C) with a handful of changes:
-    1/ Trains by using a small batch of expiriences. The batch is used to 
+    1/ Trains by using a small batch of expiriences. The batch is used to
         update the policy. A new batch is then sampled and the process continues.
         This slowly changes the policy to a better version.
     2/ New formula to estimate policy gradient. Now uses the ratio between
-        between the new and the old policy scaled by the advantage. 
+        between the new and the old policy scaled by the advantage.
     3/ New formula for estimating advantage.
 '''
 
+
 class Actor_Model:
-    '''The actor neural network decides what action to take based on 
+    '''The actor neural network decides what action to take based on
         a certain policy.
     '''
+
     def __init__(self, input_shape, action_space, lr, optimizer):
         '''Initializing parameters
 
             - input_shape: shape of the observation space.
             - action_space: shape of the action space.
-            - 
+            -
         '''
         X_input = Input(input_shape)
         self.action_space = action_space
 
         # 512 x 256 x 64 three layer neural network
-        X = Flatten(input_shape=input_shape)(X_input) # making input shape (n,1)
+        X = Flatten(input_shape=input_shape)(
+            X_input)  # making input shape (n,1)
         X = Dense(512, activation="relu")(X)
         X = Dense(256, activation="relu")(X)
         X = Dense(64, activation="relu")(X)
@@ -104,7 +106,7 @@ class Actor_Model:
     def ppo_loss(self, y_true, y_pred):
         # Defined in https://arxiv.org/abs/1707.06347
         advantages, prediction_picks, actions = y_true[:, :1], y_true[:,
-                                                                      1:1+self.action_space], y_true[:, 1+self.action_space:]
+                                                                      1: 1+self.action_space], y_true[:, 1+self.action_space:]
         LOSS_CLIPPING = 0.2
         ENTROPY_LOSS = 0.001
 
@@ -130,6 +132,8 @@ class Actor_Model:
         return total_loss
 
     def predict(self, state):
+        # print('predict state =================')
+        # print(self.Actor.predict(state))
         return self.Actor.predict(state)
 
 
