@@ -8,23 +8,26 @@
     modifications:
         - Added function descriptions.
         - Added performance visualization.
+        - Added tensorboard reward visualization.
+        - Added trading plot visualization every certain amount of episodes.
 '''
 import numpy as np
-from utils import performance_plots
+from utils import performance_plots, trading_chart
 import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense, Flatten
 from tensorflow.keras import backend as K
-
+from collections import deque
+import pandas as pd
 # ================== RANDOM ORDERS =================
 
 
-def Random_games(env, visualize, train_episodes=50, training_batch_size=500):
+def Random_games(env, visualize, train_episodes=50, training_batch_size=1000):
     '''The agent picks times to sell and buy the currency at random.
 
         - env: the gym environment the agent will learn to act in.
         - train_episodes: the number of episodes the agent will use to train.
-        - training_batch_size: the ammount of steps per episode
+        - training_batch_size: int of the max ammount of steps per episode.
     '''
     average_net_worth = 0
     avg_episode_reward_list = []
@@ -47,6 +50,11 @@ def Random_games(env, visualize, train_episodes=50, training_batch_size=500):
                 # self.net_worth is the final networth after each episode
                 net_worth_list.append(env.net_worth)
                 break
+        # save graph of historical trades made by agent
+        if episode % 5 == 0:
+            orders_data = pd.DataFrame.from_dict(env.trades)
+            trading_chart(orders_data, episode,
+                          env.df[env.start_step:env.end_step])
 
     performance_plots(avg_episode_reward_list,
                       net_worth_list, train_episodes)
@@ -87,7 +95,6 @@ class Actor_Model:
 
             - input_shape: shape of the observation space.
             - action_space: shape of the action space.
-            -
         '''
         X_input = Input(input_shape)
         self.action_space = action_space
@@ -157,3 +164,83 @@ class Critic_Model:
 
     def predict(self, state):
         return self.Critic.predict([state, np.zeros((state.shape[0], 1))])
+
+
+def train_agent(env, visualize=False, train_episodes=50, training_batch_size=500):
+    '''Trains the agent using PPO.
+
+        - train_episodes: int of the number of episodes to train the agent.
+        - training_batch_size: int of the max ammount of steps per episode. 
+    '''
+    # TODO: remove the visualize from these functions. it is no longer needed
+    env.create_writer()  # create TensorBoard writer
+    total_average = deque(maxlen=100)  # save recent 100 episodes net worth
+    best_average = 0  # used to track best average net worth
+    for episode in range(train_episodes + 1):
+        state = env.reset(env_steps_size=training_batch_size)
+
+        states, actions, rewards, predictions, dones, next_states = [], [], [], [], [], []
+        for t in range(training_batch_size):
+            env.render(visualize)
+            action, prediction = env.act(state)
+            next_state, reward, done = env.step(action)
+            states.append(np.expand_dims(state, axis=0))
+            next_states.append(np.expand_dims(next_state, axis=0))
+            action_onehot = np.zeros(3)
+            action_onehot[action] = 1
+            actions.append(action_onehot)
+            rewards.append(reward)
+            dones.append(done)
+            predictions.append(prediction)
+            state = next_state
+
+        env.replay(states, actions, rewards, predictions, dones, next_states)
+        total_average.append(env.net_worth)
+        average = np.average(total_average)
+        # TODO: add a visualization for reward
+        env.writer.add_scalar('Data/average net_worth', average, episode)
+        env.writer.add_scalar('Data/episode_orders',
+                              env.episode_orders, episode)
+        env.writer.add_scalar('Data/reward', env.episode_reward, episode)
+        print('episode: ' + str(episode) + ' net worth: ' + str(env.net_worth)
+              + ' n_orders: ' + str(env.episode_orders) + ' reward: ' + str(env.episode_reward))
+
+        # taking the best performance to use for testing
+        # TODO: might need to change this
+        if train_episodes > len(total_average):
+            if best_average < average:
+                best_average = average
+                env.save()
+
+        if episode % 1000 == 0 or episode == 1:
+            orders_data = pd.DataFrame.from_dict(env.trades)
+            if len(orders_data) > 0:
+                trading_chart(env, order_data=orders_data,
+                              episode=episode, price_data=env.df)
+
+
+def test_agent(env, visualize=True, test_episodes=1):
+    '''Tests the agent on unseen data
+    '''
+    # TODO: remove visualize and tes_episode from this function
+    env.load()  # load the model
+    average_net_worth = 0
+
+    for episode in range(test_episodes):
+        state = env.reset()
+        n_steps = 0
+        while True:
+            n_steps += 1
+            env.render(visualize)
+            action, prediction = env.act(state)
+            state, reward, done = env.step(action)
+            if env.current_step == env.end_step:
+                average_net_worth += env.net_worth
+                break
+        # save graph of historical trades made by agent
+        orders_data = pd.DataFrame.from_dict(env.trades)
+        trading_chart(env, order_data=orders_data,
+                      episode=episode, price_data=env.df)
+
+        print('episode: ' + str(episode) + ' net worth: ' + str(env.net_worth)
+              + ' n_orders: ' + str(env.episode_orders) + ' reward: ' + str(env.episode_reward))

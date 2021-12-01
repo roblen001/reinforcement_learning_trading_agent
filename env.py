@@ -18,6 +18,8 @@
         - Completly changing the graphing feature in the env. No longer renders during but only
             plots after testing. New candle plot function added.
         - Keeping track of episode rewards for performance visualization.
+        - Simplifying the env file. Only keeping functions relevant to the env class in this file.
+        - Adding information to trades list for visualization purposes
 '''
 from numpy.core.arrayprint import _leading_trailing
 import pandas as pd
@@ -26,7 +28,7 @@ import random
 from collections import deque
 from gym import spaces
 import copy
-from utils import Write_to_file, TradingGraph
+from utils import Write_to_file
 from models import Actor_Model, Critic_Model
 from tensorflow.keras.optimizers import Adam, RMSprop
 from tensorboardX import SummaryWriter
@@ -95,11 +97,12 @@ class EthereumEnv:
             - env_step_size: int changes the step size for training the data.
                 An alternative to random initial offset.
         '''
+        self.net_worth_lst = deque()  # for visualization
         self.trades = deque()  # for visualization
         self.episode_reward = 0
+        self.reward_lst = deque()  # for visualization
         self.balance = self.initial_balance
         self.net_worth = self.initial_balance
-        self.episode_reward = 0
         self.crypto_held = 0
         self.crypto_sold = 0
         self.crypto_bought = 0
@@ -171,9 +174,18 @@ class EthereumEnv:
                 self.balance - (self.trading_fee * self.balance)) / current_price
             self.balance -= self.crypto_bought * current_price
             self.crypto_held += self.crypto_bought
-            self.trades.append({'Date': Date, 'High': High, 'Low': Low,
-                               'total': self.crypto_bought, 'type': "buy"})
             self.episode_orders += 1
+            # TODO: this is currently being done multiple times
+            # find a way to clean this code
+            buy_and_hold_gains_percent_2 = (
+                self.df.loc[self.current_step, 'Close'] / self.df.loc[0, 'Close']) * 100
+            profit_percent_2 = ((self.net_worth - self.initial_balance) /
+                                self.initial_balance) * 100
+            reward_2 = profit_percent_2 - buy_and_hold_gains_percent_2
+            net_worth_2 = self.balance + self.crypto_held * current_price
+            self.trades.append({'Date': Date, 'High': High, 'Low': Low, 'Close': current_price,
+                               'total': self.crypto_bought, 'type': 'buy',
+                                'Net_worth': net_worth_2, 'Reward': reward_2})
 
         # Sell 100% of current crypto held TODO: confirm the math for balance
         elif action == 2 and self.crypto_held > 0:
@@ -181,9 +193,18 @@ class EthereumEnv:
             self.balance += (self.crypto_sold * current_price) - \
                 ((self.crypto_sold * current_price) * self.trading_fee)
             self.crypto_held -= self.crypto_sold
-            self.trades.append(
-                {'Date': Date, 'High': High, 'Low': Low, 'total': self.crypto_sold, 'type': "sell"})
             self.episode_orders += 1
+           # TODO: this is currently being done multiple times
+            # find a way to clean this code
+            buy_and_hold_gains_percent_1 = (
+                self.df.loc[self.current_step, 'Close'] / self.df.loc[0, 'Close']) * 100
+            profit_percent_1 = ((self.net_worth - self.initial_balance) /
+                                self.initial_balance) * 100
+            reward_1 = profit_percent_1 - buy_and_hold_gains_percent_1
+            net_worth_1 = self.balance + self.crypto_held * current_price
+            self.trades.append({'Date': Date, 'High': High, 'Low': Low, 'Close': current_price,
+                               'total': self.crypto_bought, 'type': 'sell',
+                                'Net_worth': net_worth_1, 'Reward': reward_1})
 
         self.net_worth = self.balance + self.crypto_held * current_price
         self.orders_history.append(
@@ -194,12 +215,16 @@ class EthereumEnv:
         # Calculate reward
         # Reward is the diff between total trading profits in percent - total eth gains in percent
         # TODO: maked sure the reward functions is doing the proper calculations
+        # TODO: Maybe make this buy and hold just a daily gain instead of since the start
+        # Only give reward on sell?
         buy_and_hold_gains_percent = (
             self.df.loc[self.current_step, 'Close'] / self.df.loc[0, 'Close']) * 100
         profit_percent = ((self.net_worth - self.initial_balance) /
                           self.initial_balance) * 100
         reward = profit_percent - buy_and_hold_gains_percent
         self.episode_reward += reward
+        self.net_worth_lst.append(self.net_worth)  # for visualization
+        self.reward_lst.append(reward)  # for visualization
         # TODO: this feel useless
         if self.net_worth <= self.initial_balance/2:
             done = True
@@ -299,63 +324,26 @@ class EthereumEnv:
         self.Actor.Actor.load_weights(f"{name}_Actor.h5")
         self.Critic.Critic.load_weights(f"{name}_Critic.h5")
 
-
-def train_agent(env, visualize=False, train_episodes=50, training_batch_size=500):
-    env.create_writer()  # create TensorBoard writer
-    total_average = deque(maxlen=100)  # save recent 100 episodes net worth
-    best_average = 0  # used to track best average net worth
-    for episode in range(train_episodes + 1):
-        state = env.reset(env_steps_size=training_batch_size)
-
-        states, actions, rewards, predictions, dones, next_states = [], [], [], [], [], []
-        for t in range(training_batch_size):
-            env.render(visualize)
-            action, prediction = env.act(state)
-            next_state, reward, done = env.step(action)
-            states.append(np.expand_dims(state, axis=0))
-            next_states.append(np.expand_dims(next_state, axis=0))
-            action_onehot = np.zeros(3)
-            action_onehot[action] = 1
-            actions.append(action_onehot)
-            rewards.append(reward)
-            dones.append(done)
-            predictions.append(prediction)
-            state = next_state
-
-        env.replay(states, actions, rewards, predictions, dones, next_states)
-        total_average.append(env.net_worth)
-        average = np.average(total_average)
-        # TODO: add a visualization for reward
-        env.writer.add_scalar('Data/average net_worth', average, episode)
-        env.writer.add_scalar('Data/episode_orders',
-                              env.episode_orders, episode)
-        print("net worth {} {:.2f} {:.2f} {}".format(
-            episode, env.net_worth, average, env.episode_orders))
-
-        # taking the best performance to use for testing
-        # TODO: might need to change this
-        if train_episodes > len(total_average):
-            if best_average < average:
-                best_average = average
-                env.save()
-
-
-def test_agent(env, visualize=True, test_episodes=10):
-    env.load()  # load the model
-    average_net_worth = 0
-
-    for episode in range(test_episodes):
-        state = env.reset()
-        n_steps = 0
-        while True:
-            n_steps += 1
-            env.render(visualize)
-            action, prediction = env.act(state)
-            state, reward, done = env.step(action)
-            if env.current_step == env.end_step:
-                average_net_worth += env.net_worth
-                print("net_worth:", episode, env.net_worth, env.episode_orders)
-                break
-
-    print("average {} episodes agent net_worth: {}".format(
-        test_episodes, average_net_worth/test_episodes))
+    # def get_reward(self):
+    #     '''Calculates the reward for the agent.
+    #     '''
+    #     # punish the bot for only holding
+    #     self.punish_value += self.net_worth * 0.00001
+    #     if self.episode_orders > 1 and self.episode_orders > self.prev_episode_orders:
+    #         self.prev_episode_orders = self.episode_orders
+    #         if self.trades[-1]['type'] == "buy" and self.trades[-2]['type'] == "sell":
+    #             reward = self.trades[-2]['total']*self.trades[-2]['current_price'] - \
+    #                 self.trades[-2]['total']*self.trades[-1]['current_price']
+    #             reward -= self.punish_value
+    #             self.punish_value = 0
+    #             self.trades[-1]["Reward"] = reward
+    #             return reward
+    #         elif self.trades[-1]['type'] == "sell" and self.trades[-2]['type'] == "buy":
+    #             reward = self.trades[-1]['total']*self.trades[-1]['current_price'] - \
+    #                 self.trades[-2]['total']*self.trades[-2]['current_price']
+    #             reward -= self.punish_value
+    #             self.punish_value = 0
+    #             self.trades[-1]["Reward"] = reward
+    #             return reward
+    #     else:
+    #         return 0 - self.punish_value
