@@ -20,6 +20,7 @@ from datetime import datetime
 import os
 import cv2
 import numpy as np
+import matplotlib.dates as mdates
 
 
 def Write_to_file(Date, net_worth, filename='{}.txt'.format(datetime.now().strftime("%Y-%m-%d %H-%M-%S"))):
@@ -58,7 +59,7 @@ def performance_plots(avg_reward, net_worth, n_episodes):
     plt.show()
 
 
-def trading_chart(env, order_data, episode, price_data):
+def trading_chart(env, order_data, episode, price_data, filename="", reward_annotations=True):
     '''Visualize the the trades my by the agent.
 
         - order_data: dataframe with the following columns:
@@ -68,6 +69,8 @@ def trading_chart(env, order_data, episode, price_data):
         - episode: int of current episode when graph is being plotted.
         - price_data: dataframe of data at every step of time frame.
     '''
+    # TODO: Add a way to make sure the files dont save over each other
+    #  we want the plots for each model
     # cleaning data to plot
     order_data = order_data.drop(
         ['High', 'Low', 'Close', 'Net_worth', 'Reward'], axis=1)
@@ -87,8 +90,6 @@ def trading_chart(env, order_data, episode, price_data):
     ax[0].plot(df['Date'], df['Close'], label='Ethereum Price')
     ax[1].plot(df['Date'], df['Close'], label='Ethereum Price')
     ax[1].plot(df['Date'], df['Net_worth'], label='Net worth')
-
-    # ax[1].plot(df['Date'], df['Reward'])
     ax[0].text(0.3, 0.9, 'networth: ' + str(round(env.net_worth)) + ' reward: ' + str(round(env.episode_reward)), ha='center',
                va='center', transform=ax[0].transAxes,  bbox={'facecolor': 'grey', 'alpha': 0.5, 'pad': 10})
     ax[0].text(3, 4, 'Random Noise', style='italic', fontsize=12,
@@ -98,7 +99,7 @@ def trading_chart(env, order_data, episode, price_data):
     ax[0].scatter(buys['Date'], buys['Close'],
                   label='Buy', marker='^', color='green', alpha=1)
     ax[0].scatter(sells['Date'], sells['Close'],
-                  label='Sell', marker='^', color='red', alpha=1)
+                  label='Sell', marker='v', color='red', alpha=1)
     ax[0].set_title('Ethereum Price History with buy and sell signals',
                     fontsize=10, backgroundcolor='white', color='white')
     ax[0].set_ylabel('Close Price', fontsize=18)
@@ -109,8 +110,30 @@ def trading_chart(env, order_data, episode, price_data):
     ax[1].legend()
     ax[0].grid()
     ax[1].grid()
+    # Adding labels for action rewards
+    if reward_annotations == True:
+        if 'level_0' in sells.columns:
+            sells = sells.drop(
+                ['level_0'], axis=1).reset_index()
+        else:
+            sells = sells.reset_index()
+        for i in range(len(sells)):
+            ax[0].annotate('{0:.2f}'.format(int(sells['Reward'][i])), xy=(int(mdates.date2num(sells['Date'][i])), int(sells['Close'][i])),
+                           xytext=(int(mdates.date2num(sells['Date'][i])-8),
+                                   int(sells['Close'][i] + 100)),
+                           bbox=dict(boxstyle='round', fc='w', ec='k', lw=1), fontsize="small")
+        if 'level_0' in buys.columns:
+            buys = buys.drop(
+                ['level_0'], axis=1).reset_index()
+        else:
+            buys = buys.reset_index()
+        for i in range(len(buys)):
+            ax[0].annotate('{0:.2f}'.format(int(buys['Reward'][i])), xy=(int(mdates.date2num(buys['Date'][i])), int(buys['Close'][i])),
+                           xytext=(int(mdates.date2num(buys['Date'][i])-8),
+                                   int(buys['Close'][i] + 100)),
+                           bbox=dict(boxstyle='round', fc='w', ec='k', lw=1), fontsize="small")
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.savefig('trades_plot_episode_' + str(episode) + '.png')
+    plt.savefig(filename + 'trades_plot_episode_' + str(episode) + '.png')
 
 # ================ COMPLETLY CHANGE THIS ================================
 # TODO: add labels with reward values in the graph
