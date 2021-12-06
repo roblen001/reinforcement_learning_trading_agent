@@ -287,7 +287,7 @@ def train_agent(env, agent, visualize=False, train_episodes=50, training_batch_s
     agent.create_writer(env.initial_balance, env.normalize_value,
                         train_episodes)  # create TensorBoard writer
     total_average = deque(maxlen=100)  # save recent 100 episodes net worth
-    best_average = 0  # used to track best average net worth
+    best_average = -1000000000000000  # used to track best average net worth
     for episode in range(train_episodes):
         state = env.reset(env_steps_size=training_batch_size)
 
@@ -305,7 +305,6 @@ def train_agent(env, agent, visualize=False, train_episodes=50, training_batch_s
             dones.append(done)
             predictions.append(prediction)
             state = next_state
-
         a_loss, c_loss = agent.replay(
             states, actions, rewards, predictions, dones, next_states)
         total_average.append(env.net_worth)
@@ -318,12 +317,12 @@ def train_agent(env, agent, visualize=False, train_episodes=50, training_batch_s
         print('episode: ' + str(episode) + ' net worth: ' + str(env.net_worth)
               + ' n_orders: ' + str(env.episode_orders) + ' reward: ' + str(env.episode_reward))
         if train_episodes > len(total_average):
-            if best_average < average:
+            if best_average < env.episode_reward:
                 orders_data = pd.DataFrame.from_dict(env.trades)
                 if len(orders_data) > 0:
                     trading_chart(env, order_data=orders_data,
-                                  episode=episode, filename="train_", price_data=env.df)
-                best_average = average
+                                  episode=episode, filename="train_", price_data=env.df, reward_annotations=True)
+                best_average = env.episode_reward
                 print("Saving model")
                 agent.save(score="{:.2f}".format(best_average), args=[
                            episode, average, env.episode_orders, a_loss, c_loss])

@@ -59,7 +59,7 @@ def performance_plots(avg_reward, net_worth, n_episodes):
     plt.show()
 
 
-def trading_chart(env, order_data, episode, price_data, filename="", reward_annotations=True):
+def trading_chart(env, order_data, episode, price_data, filename="", reward_annotations=False):
     '''Visualize the the trades my by the agent.
 
         - order_data: dataframe with the following columns:

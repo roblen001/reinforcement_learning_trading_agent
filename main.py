@@ -27,11 +27,11 @@ train_env = EthereumEnv(train_df, lookback_window_size=lookback_window_size)
 train_agent(train_env, agent, visualize=False,
             train_episodes=20000, training_batch_size=500)
 # Random_games(train_env, visualize=False,
-#              train_episodes=10)
+#  train_episodes=10)
 # test_env = EthereumEnv(
 #     test_df, lookback_window_size=lookback_window_size)
-# test_agent(test_env, agent, test_episodes=10,
-#            folder="2021_12_02_13_28_Crypto_trader", name="2549.10_Crypto_trader", comment="")
+# test_agent(test_env, agent, test_episodes=1,
+#            folder="2021_12_04_09_55_Crypto_trader", name="1.41_Crypto_trader", comment="")
 
 # agent = CustomAgent(lookback_window_size=lookback_window_size,
 #                     lr=0.00001, epochs=1, optimizer=Adam, batch_size=32, model="CNN")

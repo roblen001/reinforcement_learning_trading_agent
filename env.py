@@ -217,6 +217,7 @@ class EthereumEnv:
             - env_step_size: int changes the step size for training the data.
                 An alternative to random initial offset.
         '''
+        self.total_trade_profits = 0
         self.prev_episode_orders = 0  # track previous episode orders count
         self.punish_value = 0
         self.net_worth_lst = deque()  # for visualization
@@ -290,28 +291,24 @@ class EthereumEnv:
         Date = self.df.loc[self.current_step, 'Date']  # for visualization
         High = self.df.loc[self.current_step, 'High']  # for visualization
         Low = self.df.loc[self.current_step, 'Low']  # for visualization
-
+        # TODO: this might need to be changed
+        reward = 0
         if action == 0:  # Hold
             pass
         # Buy with 100% of current balance TODO: confirm the math for crypto bought
         # Agent will only buy if it has at least more then 10% of the initial money remaining
-        elif action == 1 and self.balance > self.initial_balance/10:
+        elif action == 1 and self.balance > self.initial_balance/10 and self.crypto_held == 0:
             self.crypto_bought = (
                 self.balance - (self.trading_fee * self.balance)) / current_price
             self.balance -= self.crypto_bought * current_price
             self.crypto_held += self.crypto_bought
             self.episode_orders += 1
-            # TODO: this is currently being done multiple times
-            # find a way to clean this code
-            buy_and_hold_gains_percent_2 = (
-                self.df.loc[self.current_step, 'Close'] / self.df.loc[0, 'Close']) * 100
-            profit_percent_2 = ((self.net_worth - self.initial_balance) /
-                                self.initial_balance) * 100
-            reward_2 = profit_percent_2 - buy_and_hold_gains_percent_2
-            net_worth_2 = self.balance + self.crypto_held * current_price
+            net_worth = self.balance + self.crypto_held * current_price
+            reward = 0
+            # TODO: remove the current price from list
             self.trades.append({'Date': Date, 'High': High, 'Low': Low, 'Close': current_price,
                                'total': self.crypto_bought, 'type': 'buy',
-                                'Net_worth': net_worth_2, 'Reward': reward_2, 'current_price': current_price})
+                                'Net_worth': net_worth, 'Reward': reward, 'current_price': current_price})
 
         # Sell 100% of current crypto held TODO: confirm the math for balance
         elif action == 2 and self.crypto_held > 0:
@@ -320,17 +317,12 @@ class EthereumEnv:
                 ((self.crypto_sold * current_price) * self.trading_fee)
             self.crypto_held -= self.crypto_sold
             self.episode_orders += 1
-           # TODO: this is currently being done multiple times
-            # find a way to clean this code
-            buy_and_hold_gains_percent_1 = (
-                self.df.loc[self.current_step, 'Close'] / self.df.loc[0, 'Close']) * 100
-            profit_percent_1 = ((self.net_worth - self.initial_balance) /
-                                self.initial_balance) * 100
-            reward_1 = profit_percent_1 - buy_and_hold_gains_percent_1
-            net_worth_1 = self.balance + self.crypto_held * current_price
+            net_worth = self.balance + self.crypto_held * current_price
+            reward = self.get_reward()
+            # TODO: remove the current price from list
             self.trades.append({'Date': Date, 'High': High, 'Low': Low, 'Close': current_price,
-                               'total': self.crypto_bought, 'type': 'sell',
-                                'Net_worth': net_worth_1, 'Reward': reward_1, 'current_price': current_price})
+                               'total': self.crypto_sold, 'type': 'sell',
+                                'Net_worth': net_worth, 'Reward': reward, 'current_price': current_price})
 
         self.net_worth = self.balance + self.crypto_held * current_price
         self.orders_history.append(
@@ -338,22 +330,7 @@ class EthereumEnv:
 
         if self.debug_mode:
             Write_to_file(Date, self.orders_history[-1])
-        # Calculate reward
-        # Reward is the diff between total trading profits in percent - total eth gains in percent
-        # TODO: maked sure the reward functions is doing the proper calculations
-        # TODO: Maybe make this buy and hold just a daily gain instead of since the start
-        # Only give reward on sell?
-        # TODO: turn this into a function
-        # buy_and_hold_gains_percent = (
-        #     self.df.loc[self.current_step, 'Close'] / self.df.loc[0, 'Close']) * 100
-        # profit_percent = ((self.net_worth - self.initial_balance) /
-        #                   self.initial_balance) * 100
-        # reward = profit_percent - buy_and_hold_gains_percent
-        # self.episode_reward += reward
-        reward = self.get_reward()
-        if pd.isna(reward):
-            print('==================REWARD=========')
-            print(reward)
+        self.episode_reward += reward
         self.net_worth_lst.append(self.net_worth)  # for visualization
         self.reward_lst.append(reward)  # for visualization
         # TODO: this feel useless
@@ -365,7 +342,6 @@ class EthereumEnv:
         obs = self._next_observation()
 
         # info = [self.trades, self.net_worth]
-
         return obs, reward, done
 
     # render environment
@@ -389,28 +365,101 @@ class EthereumEnv:
     def get_reward(self):
         '''Calculates the reward for the agent.
         '''
-        # punish the bot for only holding
-        self.punish_value += self.net_worth * 0.00001
-        print(self.episode_orders)
-        if self.episode_orders > 1 and self.episode_orders > self.prev_episode_orders:
-            self.prev_episode_orders = self.episode_orders
-            if self.trades[-1]['type'] == "buy" and self.trades[-2]['type'] == "sell":
-                reward = self.trades[-2]['total']*self.trades[-2]['current_price'] - \
-                    self.trades[-2]['total']*self.trades[-1]['current_price']
-                reward -= self.punish_value
-                self.punish_value = 0
-                self.trades[-1]["Reward"] = reward
-                print('REWARD BLOCK 1')
-                return reward
-            elif self.trades[-1]['type'] == "sell" and self.trades[-2]['type'] == "buy":
-                reward = self.trades[-1]['total']*self.trades[-1]['current_price'] - \
-                    self.trades[-2]['total']*self.trades[-2]['current_price']
-                reward -= self.punish_value
-                self.punish_value = 0
-                self.trades[-1]["Reward"] = reward
-                print('REWARD BLOCK 2')
-                return reward
+        # ============COMPOUNDED RETURN AGAINST BUY AND HOLD==============
+        # treasury_US = pd.read_csv('10-year-treasury-bond-rate-yield-chart.csv')
+        # Ri_lst = []
+        # Rf_lst = []
+        # Rt_lst = []
+        # # TODO: this can be optimized
+        # if len(self.trades) > 1:
+        #     for t in range(1, self.current_step):
+        #         Ri = np.log(self.df.loc[t,
+        #                                 'Close']) - np.log(self.df.loc[t - 1, 'Close'])
+        #         Ri_lst.append(Ri)
+        #         # Risk free rate
+        #         # TODO:Confirm you are looking at gains
+        #         start_date_row = treasury_US[treasury_US['date']
+        #                                      == self.df.loc[t, 'Date']]
+        #         end_date_row = treasury_US[treasury_US['date']
+        #                                    == self.trades[0]['Date']]
+        #         start_date_row = start_date_row.reset_index()
+        #         end_date_row = end_date_row.reset_index()
+        #         Rf = end_date_row.loc[0, 'value'] - \
+        #             start_date_row.loc[0, 'value']
+        #         Rf_lst.append(Rf)
+        #         # Return for buy and hold
+        #         Rt = self.df.loc[t, 'Close'] - list(self.trades)[0]['Close']
+        #         Rf_lst.append(Rt)
+        #     # buy
+        #     # TODO: confirm these equations
+        #     if action == 1:
+        #         R = sum(Ri_lst) + \
+        #             len(self.orders_history) * \
+        #             ((1-self.trading_fee)/1+self.trading_fee)
+
+        #     # sell
+        #     elif action == 2:
+        #         R = sum(Rf_lst) + \
+        #             len(self.orders_history) * \
+        #             np.log((1-self.trading_fee)/(1+self.trading_fee))
+        #     # Return for buy and hold
+        #     Rbh = sum(Rt_lst) + \
+        #         np.log((1-self.trading_fee)/(1-self.trading_fee))
+        #     reward = R - Rbh
+        # else:
+        #     reward = 0
+        # return reward
+        # Reward is the diff between total trading profits in percent - total eth gains in percent
+        # TODO: maked sure the reward functions is doing the proper calculations
+        # TODO: Maybe make this buy and hold just a daily gain instead of since the start
+        # Only give reward on sell?
+        # =====================CUSTOM REWARD 1==========================================
+        if self.episode_orders > 2:
+            # buy and hold gains
+            eth_bought_bh = (self.initial_balance - (self.initial_balance *
+                                                     self.trading_fee))/self.df.loc[self.current_step, 'Close']
+            bh_gains = (eth_bought_bh *
+                        self.df.loc[self.current_step, 'Close'] - (eth_bought_bh *
+                                                                   self.df.loc[self.current_step, 'Close'] * self.trading_fee)) - \
+                eth_bought_bh*self.df.loc[0, 'Close']
+            # trade gains
+            # only calculated on sells
+            profits = (self.trades[-1]['total'] *
+                       self.trades[-1]['Close']) - (self.trades[-2]['Close']*self.trades[-2]['total'])
+            self.total_trade_profits += profits
+            reward = self.total_trade_profits - bh_gains
         else:
-            print('No Reward')
-            print(0 - self.punish_value)
-            return 0 - self.punish_value
+            reward = 0
+        return reward
+        # if self.episode_orders > 1:
+        #     buy_and_hold_gains_percent = (
+        #         (self.df.loc[self.current_step, 'Close'] - self.df.loc[0, 'Close'])/self.df.loc[0, 'Close']) * 100
+        #     profit_percent = ((self.net_worth - self.initial_balance) /
+        #                       self.initial_balance) * 100
+        #     reward = profit_percent - buy_and_hold_gains_percent
+        # else:
+        #     reward = 0 - self.punish_value
+        # return reward
+        # =====================CUSTOM REWARD 2 FROM: RECOMMENDING CRYPTO TRADING POINTS PAPER==========================================
+        # this one needs to be coded within the buy and sell block of code in the step() function.
+
+        # # punish the bot for only holding
+        # self.punish_value += self.net_worth * 0.00001
+        # if self.episode_orders > 1 and self.episode_orders > self.prev_episode_orders:
+        #     self.prev_episode_orders = self.episode_orders
+        #     if self.trades[-1]['type'] == "buy" and self.trades[-2]['type'] == "sell":
+        #         reward = self.trades[-2]['total']*self.trades[-2]['current_price'] - \
+        #             self.trades[-2]['total']*self.trades[-1]['current_price']
+        #         reward -= self.punish_value
+        #         self.punish_value = 0
+        #         self.trades[-1]["Reward"] = reward
+        #         return reward
+        #     elif self.trades[-1]['type'] == "sell" and self.trades[-2]['type'] == "buy":
+        #         reward = self.trades[-1]['total']*self.trades[-1]['current_price'] - \
+        #             self.trades[-2]['total']*self.trades[-2]['current_price']
+        #         reward -= self.punish_value
+        #         self.punish_value = 0
+        #         self.trades[-1]["Reward"] = reward
+        #         return reward
+        # else:
+        #     return 0 - self.punish_value
