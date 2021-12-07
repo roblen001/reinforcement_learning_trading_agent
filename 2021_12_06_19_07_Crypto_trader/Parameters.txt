@@ -1,0 +1,9 @@
+training start: 2021-12-06 19:07
+initial_balance: 1000
+training episodes: 20000
+lookback_window_size: 50
+lr: 1e-05
+epochs: 1
+batch size: 32
+normalize_value: 40000
+model: Dense

@@ -73,7 +73,7 @@ def trading_chart(env, order_data, episode, price_data, filename="", reward_anno
     #  we want the plots for each model
     # cleaning data to plot
     order_data = order_data.drop(
-        ['High', 'Low', 'Close', 'Net_worth', 'Reward'], axis=1)
+        ['High', 'Low', 'Close', 'Net_worth'], axis=1)
     order_data['Date'] = pd.to_datetime(
         order_data['Date'])
     price_data['Date'] = pd.to_datetime(
@@ -84,7 +84,7 @@ def trading_chart(env, order_data, episode, price_data, filename="", reward_anno
     end_date = df.tail(1)['Date']
     # adding the networth at everytime step
     df['Net_worth'] = env.net_worth_lst
-    df['Reward'] = env.reward_lst
+    # df['Reward'] = env.reward_lst
     # plotting figure
     fig, ax = plt.subplots(2, 1, figsize=(16, 10))
     ax[0].plot(df['Date'], df['Close'], label='Ethereum Price')
@@ -111,6 +111,7 @@ def trading_chart(env, order_data, episode, price_data, filename="", reward_anno
     ax[0].grid()
     ax[1].grid()
     # Adding labels for action rewards
+    # TODO: fix annotations
     if reward_annotations == True:
         if 'level_0' in sells.columns:
             sells = sells.drop(
@@ -122,16 +123,16 @@ def trading_chart(env, order_data, episode, price_data, filename="", reward_anno
                            xytext=(int(mdates.date2num(sells['Date'][i])-8),
                                    int(sells['Close'][i] + 100)),
                            bbox=dict(boxstyle='round', fc='w', ec='k', lw=1), fontsize="small")
-        if 'level_0' in buys.columns:
-            buys = buys.drop(
-                ['level_0'], axis=1).reset_index()
-        else:
-            buys = buys.reset_index()
-        for i in range(len(buys)):
-            ax[0].annotate('{0:.2f}'.format(int(buys['Reward'][i])), xy=(int(mdates.date2num(buys['Date'][i])), int(buys['Close'][i])),
-                           xytext=(int(mdates.date2num(buys['Date'][i])-8),
-                                   int(buys['Close'][i] + 100)),
-                           bbox=dict(boxstyle='round', fc='w', ec='k', lw=1), fontsize="small")
+        # if 'level_0' in buys.columns:
+        #     buys = buys.drop(
+        #         ['level_0'], axis=1).reset_index()
+        # else:
+        #     buys = buys.reset_index()
+        # for i in range(len(buys)):
+        #     ax[0].annotate('{0:.2f}'.format(int(buys['Reward'][i])), xy=(int(mdates.date2num(buys['Date'][i])), int(buys['Close'][i])),
+        #                    xytext=(int(mdates.date2num(buys['Date'][i])-8),
+        #                            int(buys['Close'][i] + 100)),
+        #                    bbox=dict(boxstyle='round', fc='w', ec='k', lw=1), fontsize="small")
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.savefig(filename + 'trades_plot_episode_' + str(episode) + '.png')
 
