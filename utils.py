@@ -72,8 +72,10 @@ def trading_chart(env, order_data, episode, price_data, filename="", reward_anno
     # TODO: Add a way to make sure the files dont save over each other
     #  we want the plots for each model
     # cleaning data to plot
+    # order_data = order_data.drop(
+    #     ['High', 'Low', 'Close', 'Net_worth'], axis=1)
     order_data = order_data.drop(
-        ['High', 'Low', 'Close', 'Net_worth'], axis=1)
+        ['Close', 'Net_worth'], axis=1)
     order_data['Date'] = pd.to_datetime(
         order_data['Date'])
     price_data['Date'] = pd.to_datetime(

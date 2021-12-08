@@ -11,40 +11,63 @@
 import pandas as pd
 from env import EthereumEnv, CustomAgent
 from models import Random_games, train_agent, test_agent
+from multiprocessing_env import train_multiprocessing
 from tensorflow.keras.optimizers import Adam, RMSprop
+from sklearn import preprocessing
 
-df = pd.read_csv('ETHUSD.csv', index_col=False)
-df = df.dropna().reset_index()
+if __name__ == "__main__":
+    df = pd.read_csv('cryptoanalysis_data.csv', index_col=False)
+    df = df.rename(columns={'price': 'Close'})
+    df = df.rename(columns={'date': 'Date'})
+    # TODO: going to need to add better data normalization
+    # can also use standarization
+    Close = list(df['Close'])
+    df = df.drop(['Close'], axis=1)
+    Date = df['Date']
+    df = df.drop(['Date'], axis=1)
+    column_maxes = df.max()
+    df_max = column_maxes.max()
+    column_mins = df.min()
+    df_min = column_mins.min()
+    normalized_df = (df - df_min) / (df_max - df_min)
+    normalized_df['Close'] = Close
+    normalized_df['Date'] = Date
+    df = normalized_df
 
-lookback_window_size = 50
-test_window = 720  # 30 days
-train_df = df[:-test_window-lookback_window_size]
-test_df = df[-test_window-lookback_window_size:]
+    lookback_window_size = 100
+    test_window = 720  # 30 days
+    train_df = df[:-test_window-lookback_window_size]
+    test_df = df[-test_window-lookback_window_size:]
 
-agent = CustomAgent(lookback_window_size=lookback_window_size,
-                    lr=0.00001, epochs=1, optimizer=Adam, batch_size=32, model="Dense")
-train_env = EthereumEnv(train_df, lookback_window_size=lookback_window_size)
-train_agent(train_env, agent, visualize=False,
-            train_episodes=20000, training_batch_size=500)
-# Random_games(train_env, visualize=False,
-#  train_episodes=10)
-# test_env = EthereumEnv(
-#     test_df, lookback_window_size=lookback_window_size)
-# test_agent(test_env, agent, test_episodes=1,
-#            folder="2021_12_04_09_55_Crypto_trader", name="1.41_Crypto_trader", comment="")
+    agent = CustomAgent(lookback_window_size=lookback_window_size,
+                        lr=0.00001, epochs=1, optimizer=Adam, batch_size=64, model="CNN")
+    train_env = EthereumEnv(
+        train_df, lookback_window_size=lookback_window_size)
+    train_agent(train_env, agent, visualize=False,
+                train_episodes=20000, training_batch_size=500)
 
-# agent = CustomAgent(lookback_window_size=lookback_window_size,
-#                     lr=0.00001, epochs=1, optimizer=Adam, batch_size=32, model="CNN")
-# test_env = EthereumEnv(
-#     test_df, lookback_window_size=lookback_window_size, Show_reward=False)
-# test_agent(test_env, agent, visualize=False, test_episodes=10,
-#            folder="2021_01_11_23_48_Crypto_trader", name="1772.66_Crypto_trader", comment="")
-# test_agent(test_env, agent, visualize=False, test_episodes=10,
-#            folder="2021_01_11_23_48_Crypto_trader", name="1377.86_Crypto_trader", comment="")
+    # train_multiprocessing(train_env, agent, train_df,
+    #                       num_worker=2, training_batch_size=500, visualize=False, EPISODES=200000)
 
-# agent = CustomAgent(lookback_window_size=lookback_window_size,
-#                     lr=0.00001, epochs=1, optimizer=Adam, batch_size=128, model="LSTM")
-# test_env = EthereumEnv(
-#     test_df, lookback_window_size=lookback_window_size, Show_reward=False)
-# test_agent(test_env, agent, visualize=False, test_episodes=10,
-#            folder="2021_01_11_23_43_Crypto_trader", name="1076.27_Crypto_trader", comment="")
+    # Random_games(train_env, visualize=False,
+    #  train_episodes=10)
+    # test_env = EthereumEnv(
+    #     test_df, lookback_window_size=lookback_window_size)
+    # test_agent(test_env, agent, test_episodes=1,
+    #            folder="2021_12_04_09_55_Crypto_trader", name="1.41_Crypto_trader", comment="")
+
+    # agent = CustomAgent(lookback_window_size=lookback_window_size,
+    #                     lr=0.00001, epochs=1, optimizer=Adam, batch_size=32, model="CNN")
+    # test_env = EthereumEnv(
+    #     test_df, lookback_window_size=lookback_window_size, Show_reward=False)
+    # test_agent(test_env, agent, visualize=False, test_episodes=10,
+    #            folder="2021_01_11_23_48_Crypto_trader", name="1772.66_Crypto_trader", comment="")
+    # test_agent(test_env, agent, visualize=False, test_episodes=10,
+    #            folder="2021_01_11_23_48_Crypto_trader", name="1377.86_Crypto_trader", comment="")
+
+    # agent = CustomAgent(lookback_window_size=lookback_window_size,
+    #                     lr=0.00001, epochs=1, optimizer=Adam, batch_size=128, model="LSTM")
+    # test_env = EthereumEnv(
+    #     test_df, lookback_window_size=lookback_window_size, Show_reward=False)
+    # test_agent(test_env, agent, visualize=False, test_episodes=10,
+    #            folder="2021_01_11_23_43_Crypto_trader", name="1076.27_Crypto_trader", comment="")

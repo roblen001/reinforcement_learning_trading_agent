@@ -20,6 +20,7 @@
         - Keeping track of episode rewards for performance visualization.
         - Simplifying the env file. Only keeping functions relevant to the env class in this file.
         - Adding information to trades list for visualization purposes
+        - Added new data and removed previously used data, bot is now trading on fundementals
 '''
 from matplotlib.pyplot import axis
 from numpy.core.arrayprint import _leading_trailing
@@ -54,7 +55,7 @@ class CustomAgent:
         self.log_name = dt.now().strftime("%Y_%m_%d_%H_%M")+"_Crypto_trader"
 
         # State size contains Market+Orders history for the last lookback_window_size steps
-        self.state_size = (lookback_window_size, 10)
+        self.state_size = (lookback_window_size, 20)
 
         # Neural Networks part bellow
         self.lr = lr
@@ -207,7 +208,10 @@ class EthereumEnv:
         self.orders_history = deque(maxlen=self.lookback_window_size)
 
         # Market history contains the OHCL values for the last lookback_window_size prices
-        self.market_history = deque(maxlen=self.lookback_window_size)
+        # self.market_history = deque(maxlen=self.lookback_window_size)
+
+        # Blockchain analysis data
+        self.blockchain_data = deque(maxlen=self.lookback_window_size)
 
         self.normalize_value = normalize_value
 
@@ -248,32 +252,105 @@ class EthereumEnv:
             else:
                 self.df = self.df.reset_index()
             current_step = self.current_step - i
+
             self.orders_history.append(
                 [self.balance, self.net_worth, self.crypto_bought, self.crypto_sold, self.crypto_held])
-            self.market_history.append([self.df.loc[current_step, 'Open'],
-                                        self.df.loc[current_step, 'High'],
-                                        self.df.loc[current_step, 'Low'],
-                                        self.df.loc[current_step, 'Close'],
-                                        self.df.loc[current_step, 'Volume']
-                                        ])
+            # self.market_history.append([self.df.loc[current_step, 'Open'],
+            #                             self.df.loc[current_step, 'High'],
+            #                             self.df.loc[current_step, 'Low'],
+            #                             self.df.loc[current_step, 'Close'],
+            #                             self.df.loc[current_step, 'Volume']
+            #                             ])
+            self.blockchain_data.append([self.df.loc[current_step, 'Close'],
+                                        self.df.loc[current_step,
+                                                    'receive_count'],
+                                        self.df.loc[current_step,
+                                                    'sent_count'],
+                                        self.df.loc[current_step, 'avg_fee'],
+                                        self.df.loc[current_step, 'blocksize'],
+                                        self.df.loc[current_step,
+                                                    'btchashrate'],
+                                        self.df.loc[current_step,
+                                                    'OIL'],
+                                        self.df.loc[current_step,
+                                                    'ecr20_transfers'],
+                                        self.df.loc[current_step, 'GOLD'],
+                                        self.df.loc[current_step, 'searches'],
+                                        self.df.loc[current_step, 'hashrate'],
+                                        self.df.loc[current_step,
+                                                    'marketcap'],
+                                        self.df.loc[current_step,
+                                                    'difficulty'],
+                                        self.df.loc[current_step, 's&p500'],
+                                        self.df.loc[current_step,
+                                                    'transactionfee'],
+                                         self.df.loc[current_step,
+                                                     'transactions'],
+                                        self.df.loc[current_step,
+                                                    'tweet_count'],
+                                        self.df.loc[current_step,
+                                                    'unique_adresses'],
+                                        self.df.loc[current_step, 'VIX'],
+                                        self.df.loc[current_step, 'UVYX']
+                                         ])
 
-        state = np.concatenate(
-            (self.market_history, self.orders_history), axis=1)
+        # state = np.concatenate(
+        #     (self.market_history, self.orders_history), axis=1)
 
+        state = self.blockchain_data
         return state  # reward, done, info can't be included
 
     # Get the data points for the given current_step
     def _next_observation(self):
         '''Get the data points for the given current_step state.
         '''
-        self.market_history.append([self.df.loc[self.current_step, 'Open'],
-                                    self.df.loc[self.current_step, 'High'],
-                                    self.df.loc[self.current_step, 'Low'],
-                                    self.df.loc[self.current_step, 'Close'],
-                                    self.df.loc[self.current_step, 'Volume']
-                                    ])
-        obs = np.concatenate(
-            (self.market_history, self.orders_history), axis=1)
+        # self.market_history.append([self.df.loc[self.current_step, 'Open'],
+        #                             self.df.loc[self.current_step, 'High'],
+        #                             self.df.loc[self.current_step, 'Low'],
+        #                             self.df.loc[self.current_step, 'Close'],
+        #                             self.df.loc[self.current_step, 'Volume']
+        #                             ])
+
+        self.blockchain_data.append([self.df.loc[self.current_step, 'Close'],
+                                     self.df.loc[self.current_step,
+                                                 'receive_count'],
+                                     self.df.loc[self.current_step,
+                                                 'sent_count'],
+                                     self.df.loc[self.current_step, 'avg_fee'],
+                                     self.df.loc[self.current_step,
+                                                 'blocksize'],
+                                     self.df.loc[self.current_step,
+                                                 'btchashrate'],
+                                     self.df.loc[self.current_step,
+                                                 'OIL'],
+                                     self.df.loc[self.current_step,
+                                                 'ecr20_transfers'],
+                                     self.df.loc[self.current_step, 'GOLD'],
+                                     self.df.loc[self.current_step,
+                                                 'searches'],
+                                     self.df.loc[self.current_step,
+                                                 'hashrate'],
+                                     self.df.loc[self.current_step,
+                                                 'marketcap'],
+                                     self.df.loc[self.current_step,
+                                                 'difficulty'],
+                                     self.df.loc[self.current_step, 's&p500'],
+                                     self.df.loc[self.current_step,
+                                                 'transactionfee'],
+                                     self.df.loc[self.current_step,
+                                                 'transactions'],
+                                     self.df.loc[self.current_step,
+                                                 'tweet_count'],
+                                     self.df.loc[self.current_step,
+                                                 'unique_adresses'],
+                                     self.df.loc[self.current_step, 'VIX'],
+                                     self.df.loc[self.current_step, 'UVYX']
+                                     ])
+        # obs = np.concatenate(
+        #     (self.market_history, self.orders_history), axis=1)
+
+        obs = self.blockchain_data
+
         return obs
 
     # Execute one time step within the environment
@@ -289,12 +366,12 @@ class EthereumEnv:
         # Set the current price to close
         current_price = self.df.loc[self.current_step, 'Close']
         Date = self.df.loc[self.current_step, 'Date']  # for visualization
-        High = self.df.loc[self.current_step, 'High']  # for visualization
-        Low = self.df.loc[self.current_step, 'Low']  # for visualization
+        # High = self.df.loc[self.current_step, 'High']  # for visualization
+        # Low = self.df.loc[self.current_step, 'Low']  # for visualization
         # TODO: this might need to be changed
         reward = 0
         if action == 0:  # Hold
-            reward = - self.net_worth*0.001
+            pass
         # Buy with 100% of current balance TODO: confirm the math for crypto bought
         # Agent will only buy if it has at least more then 10% of the initial money remaining
         elif action == 1 and self.balance > self.initial_balance/10 and self.crypto_held == 0:
@@ -304,9 +381,9 @@ class EthereumEnv:
             self.crypto_held += self.crypto_bought
             self.episode_orders += 1
             net_worth = self.balance + self.crypto_held * current_price
-            reward = 0
-            # TODO: remove the current price from list
-            self.trades.append({'Date': Date, 'High': High, 'Low': Low, 'Close': current_price,
+            reward = self.get_reward()
+            # TODO: remove the current price from list high and low removed
+            self.trades.append({'Date': Date, 'Close': current_price,
                                'total': self.crypto_bought, 'type': 'buy',
                                 'Net_worth': net_worth, 'Reward': reward, 'current_price': current_price})
 
@@ -319,8 +396,8 @@ class EthereumEnv:
             self.episode_orders += 1
             net_worth = self.balance + self.crypto_held * current_price
             reward = self.get_reward()
-            # TODO: remove the current price from list
-            self.trades.append({'Date': Date, 'High': High, 'Low': Low, 'Close': current_price,
+            # TODO: remove the current price from list removed 'High': High, 'Low': Low,
+            self.trades.append({'Date': Date, 'Close': current_price,
                                'total': self.crypto_sold, 'type': 'sell',
                                 'Net_worth': net_worth, 'Reward': reward, 'current_price': current_price})
 
@@ -424,11 +501,18 @@ class EthereumEnv:
         #         eth_bought_bh*self.df.loc[0, 'Close']
         #     # trade gains
         #     # only calculated on sells
-        #     profits = (self.trades[-1]['total'] *
-        #                self.trades[-1]['Close']) - (self.trades[-2]['Close']*self.trades[-2]['total'])
+        #     if self.trades[-1]['type'] == "buy" and self.trades[-2]['type'] == "sell":
+        #         profits = (self.trades[-2]['total'] *
+        #                    self.trades[-2]['Close']) - (self.trades[-1]['Close']*self.trades[-1]['total'])
+        #     elif self.trades[-1]['type'] == "sell" and self.trades[-2]['type'] == "buy":
+        #         profits = (self.trades[-1]['total'] *
+        #                    self.trades[-1]['Close']) - (self.trades[-2]['Close']*self.trades[-2]['total'])
+
         #     self.total_trade_profits += profits
-        #     # reward = self.total_trade_profits - bh_gains
-        #     reward = self.total_trade_profits
+        #     print(profits)
+        #     print(bh_gains)
+        #     reward = self.total_trade_profits - bh_gains
+        #     # reward = self.total_trade_profits
         # else:
         #     reward = 0
         # return reward

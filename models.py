@@ -208,7 +208,6 @@ class Actor_Model:
         '''
         X_input = Input(input_shape)
         self.action_space = action_space
-
         # 512 x 256 x 64 three layer neural network
         X = Flatten(input_shape=input_shape)(
             X_input)  # making input shape (n,1)
@@ -216,7 +215,6 @@ class Actor_Model:
         X = Dense(256, activation="relu")(X)
         X = Dense(64, activation="relu")(X)
         output = Dense(self.action_space, activation="softmax")(X)
-
         self.Actor = Model(inputs=X_input, outputs=output)
         self.Actor.compile(loss=self.ppo_loss, optimizer=optimizer(lr=lr))
 
@@ -249,8 +247,6 @@ class Actor_Model:
         return total_loss
 
     def predict(self, state):
-        # print('predict state =================')
-        # print(self.Actor.predict(state))
         return self.Actor.predict(state)
 
 # ================== PROXIMAL POLICY OPTIMIZATION CRITIC MODEL =================
@@ -307,7 +303,7 @@ def train_agent(env, agent, visualize=False, train_episodes=50, training_batch_s
             state = next_state
         a_loss, c_loss = agent.replay(
             states, actions, rewards, predictions, dones, next_states)
-        total_average.append(env.net_worth)
+        total_average.append(env.episode_reward)
         average = np.average(total_average)
 
         agent.writer.add_scalar('Data/average net_worth', average, episode)
@@ -317,7 +313,7 @@ def train_agent(env, agent, visualize=False, train_episodes=50, training_batch_s
         print('episode: ' + str(episode) + ' net worth: ' + str(env.net_worth)
               + ' n_orders: ' + str(env.episode_orders) + ' reward: ' + str(env.episode_reward))
         if train_episodes > len(total_average):
-            if best_average < env.episode_reward:
+            if best_average < env.episode_reward and env.episode_orders > 2:
                 orders_data = pd.DataFrame.from_dict(env.trades)
                 if len(orders_data) > 0:
                     trading_chart(env, order_data=orders_data,
