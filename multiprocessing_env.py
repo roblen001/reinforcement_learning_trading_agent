@@ -8,6 +8,10 @@
     modifications:
         - The df for training function already assumes a normalized data set.
         - Adding visualization when best model is saved.
+
+    TODO:
+        - change the multiprocessing reward function.
+        - add graphing.
 '''
 from collections import deque
 from multiprocessing import Process, Pipe

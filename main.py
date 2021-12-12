@@ -11,7 +11,7 @@
 import pandas as pd
 from env import EthereumEnv, CustomAgent
 from models import Random_games, train_agent, test_agent
-from multiprocessing_env import train_multiprocessing
+from multiprocessing_env import train_multiprocessing, test_multiprocessing
 from tensorflow.keras.optimizers import Adam, RMSprop
 from sklearn import preprocessing
 
@@ -47,7 +47,10 @@ if __name__ == "__main__":
                 train_episodes=20000, training_batch_size=500)
 
     # train_multiprocessing(train_env, agent, train_df,
-    #                       num_worker=2, training_batch_size=500, visualize=False, EPISODES=200000)
+    #                       num_worker=12, training_batch_size=500, visualize=False, EPISODES=200000)
+
+    # test_multiprocessing(EthereumEnv, CustomAgent, test_df, test_df_nomalized, num_worker=16, visualize=True,
+    #                      test_episodes=1000, folder="2021_02_21_17_54_Crypto_trader", name="3263.63_Crypto_trader", comment="3 months")
 
     # Random_games(train_env, visualize=False,
     #  train_episodes=10)

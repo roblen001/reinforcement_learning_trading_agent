@@ -1,0 +1,9 @@
+training start: 2021-12-08 20:50
+initial_balance: 1000
+training episodes: 200000
+lookback_window_size: 100
+lr: 1e-05
+epochs: 1
+batch size: 64
+normalize_value: 40000
+model: CNN

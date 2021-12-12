@@ -442,6 +442,8 @@ class EthereumEnv:
     def get_reward(self):
         '''Calculates the reward for the agent.
         '''
+        # ========REWARD FROM PAPER=========
+        
         # ============COMPOUNDED RETURN AGAINST BUY AND HOLD==============
         # treasury_US = pd.read_csv('10-year-treasury-bond-rate-yield-chart.csv')
         # Ri_lst = []
@@ -509,29 +511,28 @@ class EthereumEnv:
         #                    self.trades[-1]['Close']) - (self.trades[-2]['Close']*self.trades[-2]['total'])
 
         #     self.total_trade_profits += profits
-        #     print(profits)
-        #     print(bh_gains)
         #     reward = self.total_trade_profits - bh_gains
         #     # reward = self.total_trade_profits
         # else:
+        #     # to avoid getting stuck at 0 with no orders make it hurt
         #     reward = 0
         # return reward
         # =====================CUSTOM REWARD 2 FROM: RECOMMENDING CRYPTO TRADING POINTS PAPER==========================================
         # this one needs to be coded within the buy and sell block of code in the step() function.
-        if self.episode_orders > 2 and self.episode_orders > self.prev_episode_orders:
-            self.prev_episode_orders = self.episode_orders
-            if self.trades[-1]['type'] == "buy" and self.trades[-2]['type'] == "sell":
-                reward = self.trades[-2]['total']*self.trades[-2]['current_price'] - \
-                    self.trades[-2]['total']*self.trades[-1]['current_price']
-                self.trades[-1]["Reward"] = reward
-                return reward
-            elif self.trades[-1]['type'] == "sell" and self.trades[-2]['type'] == "buy":
-                reward = self.trades[-1]['total']*self.trades[-1]['current_price'] - \
-                    self.trades[-2]['total']*self.trades[-2]['current_price']
-                self.trades[-1]["Reward"] = reward
-                return reward
-        else:
-            return 0
+        # if self.episode_orders > 2 and self.episode_orders > self.prev_episode_orders:
+        #     self.prev_episode_orders = self.episode_orders
+        #     if self.trades[-1]['type'] == "buy" and self.trades[-2]['type'] == "sell":
+        #         reward = self.trades[-2]['total']*self.trades[-2]['current_price'] - \
+        #             self.trades[-2]['total']*self.trades[-1]['current_price']
+        #         self.trades[-1]["Reward"] = reward
+        #         return reward
+        #     elif self.trades[-1]['type'] == "sell" and self.trades[-2]['type'] == "buy":
+        #         reward = self.trades[-1]['total']*self.trades[-1]['current_price'] - \
+        #             self.trades[-2]['total']*self.trades[-2]['current_price']
+        #         self.trades[-1]["Reward"] = reward
+        #         return reward
+        # else:
+        #     return 0
         # # punish the bot for only holding
         # self.punish_value += self.net_worth * 0.00001
         # if self.episode_orders > 1 and self.episode_orders > self.prev_episode_orders:
