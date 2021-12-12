@@ -317,7 +317,7 @@ def train_agent(env, agent, visualize=False, train_episodes=50, training_batch_s
                 orders_data = pd.DataFrame.from_dict(env.trades)
                 if len(orders_data) > 0:
                     trading_chart(env, order_data=orders_data,
-                                  episode=episode, filename="train_", price_data=env.df, reward_annotations=True)
+                                  episode=episode, filename="train_", price_data=env.df, reward_annotations=False)
                 best_average = env.episode_reward
                 print("Saving model")
                 agent.save(score="{:.2f}".format(best_average), args=[

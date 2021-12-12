@@ -234,6 +234,9 @@ class EthereumEnv:
         self.crypto_sold = 0
         self.crypto_bought = 0
         self.episode_orders = 0
+        self.number_of_purchases = 0
+        self.number_of_holds = 0
+        self.number_of_sales = 0
         if env_steps_size > 0:  # used for training dataset
             self.start_step = random.randint(
                 self.lookback_window_size, self.df_total_steps - env_steps_size)
@@ -262,36 +265,36 @@ class EthereumEnv:
             #                             self.df.loc[current_step, 'Volume']
             #                             ])
             self.blockchain_data.append([self.df.loc[current_step, 'Close'],
-                                        self.df.loc[current_step,
-                                                    'receive_count'],
-                                        self.df.loc[current_step,
-                                                    'sent_count'],
-                                        self.df.loc[current_step, 'avg_fee'],
-                                        self.df.loc[current_step, 'blocksize'],
-                                        self.df.loc[current_step,
-                                                    'btchashrate'],
-                                        self.df.loc[current_step,
-                                                    'OIL'],
-                                        self.df.loc[current_step,
-                                                    'ecr20_transfers'],
-                                        self.df.loc[current_step, 'GOLD'],
-                                        self.df.loc[current_step, 'searches'],
-                                        self.df.loc[current_step, 'hashrate'],
-                                        self.df.loc[current_step,
-                                                    'marketcap'],
-                                        self.df.loc[current_step,
-                                                    'difficulty'],
-                                        self.df.loc[current_step, 's&p500'],
-                                        self.df.loc[current_step,
-                                                    'transactionfee'],
-                                         self.df.loc[current_step,
-                                                     'transactions'],
-                                        self.df.loc[current_step,
-                                                    'tweet_count'],
-                                        self.df.loc[current_step,
-                                                    'unique_adresses'],
-                                        self.df.loc[current_step, 'VIX'],
-                                        self.df.loc[current_step, 'UVYX']
+                                        # self.df.loc[current_step,
+                                         #             'receive_count'],
+                                         # self.df.loc[current_step,
+                                         #             'sent_count'],
+                                         # self.df.loc[current_step, 'avg_fee'],
+                                         # self.df.loc[current_step, 'blocksize'],
+                                         # self.df.loc[current_step,
+                                         #             'btchashrate'],
+                                         # self.df.loc[current_step,
+                                         #             'OIL'],
+                                         # self.df.loc[current_step,
+                                         #             'ecr20_transfers'],
+                                         # self.df.loc[current_step, 'GOLD'],
+                                         # self.df.loc[current_step, 'searches'],
+                                         # self.df.loc[current_step, 'hashrate'],
+                                         # self.df.loc[current_step,
+                                         #             'marketcap'],
+                                         # self.df.loc[current_step,
+                                         #             'difficulty'],
+                                         # self.df.loc[current_step, 's&p500'],
+                                         # self.df.loc[current_step,
+                                         #             'transactionfee'],
+                                         #  self.df.loc[current_step,
+                                         #              'transactions'],
+                                         # self.df.loc[current_step,
+                                         #             'tweet_count'],
+                                         # self.df.loc[current_step,
+                                         #             'unique_adresses'],
+                                         # self.df.loc[current_step, 'VIX'],
+                                         # self.df.loc[current_step, 'UVYX']
                                          ])
 
         # state = np.concatenate(
@@ -312,39 +315,39 @@ class EthereumEnv:
         #                             ])
 
         self.blockchain_data.append([self.df.loc[self.current_step, 'Close'],
-                                     self.df.loc[self.current_step,
-                                                 'receive_count'],
-                                     self.df.loc[self.current_step,
-                                                 'sent_count'],
-                                     self.df.loc[self.current_step, 'avg_fee'],
-                                     self.df.loc[self.current_step,
-                                                 'blocksize'],
-                                     self.df.loc[self.current_step,
-                                                 'btchashrate'],
-                                     self.df.loc[self.current_step,
-                                                 'OIL'],
-                                     self.df.loc[self.current_step,
-                                                 'ecr20_transfers'],
-                                     self.df.loc[self.current_step, 'GOLD'],
-                                     self.df.loc[self.current_step,
-                                                 'searches'],
-                                     self.df.loc[self.current_step,
-                                                 'hashrate'],
-                                     self.df.loc[self.current_step,
-                                                 'marketcap'],
-                                     self.df.loc[self.current_step,
-                                                 'difficulty'],
-                                     self.df.loc[self.current_step, 's&p500'],
-                                     self.df.loc[self.current_step,
-                                                 'transactionfee'],
-                                     self.df.loc[self.current_step,
-                                                 'transactions'],
-                                     self.df.loc[self.current_step,
-                                                 'tweet_count'],
-                                     self.df.loc[self.current_step,
-                                                 'unique_adresses'],
-                                     self.df.loc[self.current_step, 'VIX'],
-                                     self.df.loc[self.current_step, 'UVYX']
+                                    #  self.df.loc[self.current_step,
+                                     #              'receive_count'],
+                                     #  self.df.loc[self.current_step,
+                                     #              'sent_count'],
+                                     #  self.df.loc[self.current_step, 'avg_fee'],
+                                     #  self.df.loc[self.current_step,
+                                     #              'blocksize'],
+                                     #  self.df.loc[self.current_step,
+                                     #              'btchashrate'],
+                                     #  self.df.loc[self.current_step,
+                                     #              'OIL'],
+                                     #  self.df.loc[self.current_step,
+                                     #              'ecr20_transfers'],
+                                     #  self.df.loc[self.current_step, 'GOLD'],
+                                     #  self.df.loc[self.current_step,
+                                     #              'searches'],
+                                     #  self.df.loc[self.current_step,
+                                     #              'hashrate'],
+                                     #  self.df.loc[self.current_step,
+                                     #              'marketcap'],
+                                     #  self.df.loc[self.current_step,
+                                     #              'difficulty'],
+                                     #  self.df.loc[self.current_step, 's&p500'],
+                                     #  self.df.loc[self.current_step,
+                                     #              'transactionfee'],
+                                     #  self.df.loc[self.current_step,
+                                     #              'transactions'],
+                                     #  self.df.loc[self.current_step,
+                                     #              'tweet_count'],
+                                     #  self.df.loc[self.current_step,
+                                     #              'unique_adresses'],
+                                     #  self.df.loc[self.current_step, 'VIX'],
+                                     #  self.df.loc[self.current_step, 'UVYX']
                                      ])
         # obs = np.concatenate(
         #     (self.market_history, self.orders_history), axis=1)
@@ -359,57 +362,64 @@ class EthereumEnv:
 
             - action: int of the action to take
         '''
+        self.reward = 0
         self.crypto_bought = 0
         self.crypto_sold = 0
         self.current_step += 1
 
+        # print('networth prreeeee trade=================')
+        # print(self.net_worth)
         # Set the current price to close
         current_price = self.df.loc[self.current_step, 'Close']
         Date = self.df.loc[self.current_step, 'Date']  # for visualization
-        # High = self.df.loc[self.current_step, 'High']  # for visualization
-        # Low = self.df.loc[self.current_step, 'Low']  # for visualization
-        # TODO: this might need to be changed
-        reward = 0
         if action == 0:  # Hold
             pass
         # Buy with 100% of current balance TODO: confirm the math for crypto bought
         # Agent will only buy if it has at least more then 10% of the initial money remaining
-        elif action == 1 and self.balance > self.initial_balance/10 and self.crypto_held == 0:
+        elif action == 1 and self.balance > self.initial_balance*0.05:
             self.crypto_bought = (
                 self.balance - (self.trading_fee * self.balance)) / current_price
-            self.balance -= self.crypto_bought * current_price
+            self.balance = 0
             self.crypto_held += self.crypto_bought
             self.episode_orders += 1
-            net_worth = self.balance + self.crypto_held * current_price
-            reward = self.get_reward()
+            # net_worth = self.balance + self.crypto_held * current_price
             # TODO: remove the current price from list high and low removed
             self.trades.append({'Date': Date, 'Close': current_price,
                                'total': self.crypto_bought, 'type': 'buy',
-                                'Net_worth': net_worth, 'Reward': reward, 'current_price': current_price})
+                                'Net_worth': 0, 'Reward': None, 'current_price': current_price})
 
         # Sell 100% of current crypto held TODO: confirm the math for balance
-        elif action == 2 and self.crypto_held > 0:
+        elif action == 2 and self.crypto_held*current_price > self.initial_balance*0.05:
             self.crypto_sold = self.crypto_held
             self.balance += (self.crypto_sold * current_price) - \
                 ((self.crypto_sold * current_price) * self.trading_fee)
-            self.crypto_held -= self.crypto_sold
+            self.crypto_held = 0
             self.episode_orders += 1
-            net_worth = self.balance + self.crypto_held * current_price
-            reward = self.get_reward()
+            # print('BUY 2 ====')
+            # print(self.trades[-1]['total']*self.trades[-1]['Close'])
+            # print('SELL==========')
+            # print(self.balance)
+            profits = self.balance - \
+                self.trades[-1]['total']*self.trades[-1]['Close']
+            # net_worth = self.balance + self.crypto_held * current_price
             # TODO: remove the current price from list removed 'High': High, 'Low': Low,
             self.trades.append({'Date': Date, 'Close': current_price,
                                'total': self.crypto_sold, 'type': 'sell',
-                                'Net_worth': net_worth, 'Reward': reward, 'current_price': current_price})
+                                'Net_worth': 0, 'Reward': None, 'current_price': current_price, 'profits': profits})
 
-        self.net_worth = self.balance + self.crypto_held * current_price
+        self.net_worth = self.balance + (self.crypto_held * current_price)
+        # print('networth post trade=================')
+        # print(self.net_worth)
         self.orders_history.append(
             [self.balance, self.net_worth, self.crypto_bought, self.crypto_sold, self.crypto_held])
-
         if self.debug_mode:
             Write_to_file(Date, self.orders_history[-1])
-        self.episode_reward += reward
+        self.reward = self.get_reward(action, current_price)
+        # print('reward++++++++')
+        # print(self.reward)
+        self.episode_reward += self.reward
         self.net_worth_lst.append(self.net_worth)  # for visualization
-        self.reward_lst.append(reward)  # for visualization
+        self.reward_lst.append(self.reward)  # for visualization
         # TODO: this feel useless
         if self.net_worth <= self.initial_balance/2:
             done = True
@@ -419,7 +429,7 @@ class EthereumEnv:
         obs = self._next_observation()
 
         # info = [self.trades, self.net_worth]
-        return obs, reward, done
+        return obs, self.reward, done
 
     # render environment
     def render(self, visualize=False):
@@ -439,11 +449,29 @@ class EthereumEnv:
             self.visualization.render(
                 Date, Open, High, Low, Close, Volume, self.net_worth, self.trades)
 
-    def get_reward(self):
+    def get_reward(self, action, current_price):
         '''Calculates the reward for the agent.
         '''
-        # ========REWARD FROM PAPER=========
-        
+        # ========REWARD FROM PAPER make a reference in the code if you use this=========
+        # TODO: modify penalty
+        if action == 1 and self.balance > self.initial_balance*0.05:
+            self.number_of_purchases += 1
+            self.number_of_holds = 0
+            if self.number_of_purchases > 20:
+                self.reward -= self.net_worth*0.1
+        elif action == 0:
+            self.number_of_holds += 1
+            if self.number_of_holds > 20:
+                self.reward -= self.net_worth*0.1
+        elif action == 2 and len(self.trades) > 1 and self.trades[-1]['type'] == "sell" and self.net_worth > self.initial_balance*0.05:
+            self.number_of_holds = 0
+            self.number_of_purchases = 0
+            profits = self.trades[-1]['profits']
+            # print('PROFICTS=========')
+            # print(profits)
+            self.reward = profits
+        return self.reward
+
         # ============COMPOUNDED RETURN AGAINST BUY AND HOLD==============
         # treasury_US = pd.read_csv('10-year-treasury-bond-rate-yield-chart.csv')
         # Ri_lst = []
