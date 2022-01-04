@@ -223,7 +223,7 @@ class Actor_Model:
         advantages, prediction_picks, actions = y_true[:, :1], y_true[:,
                                                                       1: 1+self.action_space], y_true[:, 1+self.action_space:]
         LOSS_CLIPPING = 0.2
-        ENTROPY_LOSS = 0.001
+        ENTROPY_LOSS = 0.01
 
         prob = actions * y_pred
         old_prob = actions * prediction_picks

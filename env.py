@@ -185,7 +185,7 @@ class CustomAgent:
 class EthereumEnv:
     """Custom Ethereum Environment that follows gym interface"""
 
-    def __init__(self, df, initial_balance=1000, lookback_window_size=50, trading_fee=0.1, debug_mode=False, normalize_value=40000):
+    def __init__(self, df, initial_balance=1000, lookback_window_size=50, trading_fee=0.075, debug_mode=False, normalize_value=40000):
         '''Initiating the parameters.
 
             - df: cleaned pandas dataframe with historical crypto data.
@@ -265,36 +265,37 @@ class EthereumEnv:
             #                             self.df.loc[current_step, 'Volume']
             #                             ])
             self.blockchain_data.append([self.df.loc[current_step, 'Close'],
-                                        # self.df.loc[current_step,
-                                         #             'receive_count'],
-                                         # self.df.loc[current_step,
-                                         #             'sent_count'],
-                                         # self.df.loc[current_step, 'avg_fee'],
-                                         # self.df.loc[current_step, 'blocksize'],
-                                         # self.df.loc[current_step,
-                                         #             'btchashrate'],
-                                         # self.df.loc[current_step,
-                                         #             'OIL'],
-                                         # self.df.loc[current_step,
-                                         #             'ecr20_transfers'],
-                                         # self.df.loc[current_step, 'GOLD'],
-                                         # self.df.loc[current_step, 'searches'],
-                                         # self.df.loc[current_step, 'hashrate'],
-                                         # self.df.loc[current_step,
-                                         #             'marketcap'],
-                                         # self.df.loc[current_step,
-                                         #             'difficulty'],
-                                         # self.df.loc[current_step, 's&p500'],
-                                         # self.df.loc[current_step,
-                                         #             'transactionfee'],
-                                         #  self.df.loc[current_step,
-                                         #              'transactions'],
-                                         # self.df.loc[current_step,
-                                         #             'tweet_count'],
-                                         # self.df.loc[current_step,
-                                         #             'unique_adresses'],
-                                         # self.df.loc[current_step, 'VIX'],
-                                         # self.df.loc[current_step, 'UVYX']
+                                        self.df.loc[current_step,
+                                                    'receive_count'],
+                                         self.df.loc[current_step,
+                                                     'sent_count'],
+                                         self.df.loc[current_step, 'avg_fee'],
+                                         self.df.loc[current_step,
+                                                     'blocksize'],
+                                         self.df.loc[current_step,
+                                                     'btchashrate'],
+                                         self.df.loc[current_step,
+                                                     'OIL'],
+                                         self.df.loc[current_step,
+                                                     'ecr20_transfers'],
+                                         self.df.loc[current_step, 'GOLD'],
+                                         self.df.loc[current_step, 'searches'],
+                                         self.df.loc[current_step, 'hashrate'],
+                                         self.df.loc[current_step,
+                                                     'marketcap'],
+                                         self.df.loc[current_step,
+                                                     'difficulty'],
+                                         self.df.loc[current_step, 's&p500'],
+                                         self.df.loc[current_step,
+                                                     'transactionfee'],
+                                         self.df.loc[current_step,
+                                                     'transactions'],
+                                         self.df.loc[current_step,
+                                                     'tweet_count'],
+                                         self.df.loc[current_step,
+                                                     'unique_adresses'],
+                                         self.df.loc[current_step, 'VIX'],
+                                         self.df.loc[current_step, 'UVYX']
                                          ])
 
         # state = np.concatenate(
@@ -315,39 +316,39 @@ class EthereumEnv:
         #                             ])
 
         self.blockchain_data.append([self.df.loc[self.current_step, 'Close'],
-                                    #  self.df.loc[self.current_step,
-                                     #              'receive_count'],
-                                     #  self.df.loc[self.current_step,
-                                     #              'sent_count'],
-                                     #  self.df.loc[self.current_step, 'avg_fee'],
-                                     #  self.df.loc[self.current_step,
-                                     #              'blocksize'],
-                                     #  self.df.loc[self.current_step,
-                                     #              'btchashrate'],
-                                     #  self.df.loc[self.current_step,
-                                     #              'OIL'],
-                                     #  self.df.loc[self.current_step,
-                                     #              'ecr20_transfers'],
-                                     #  self.df.loc[self.current_step, 'GOLD'],
-                                     #  self.df.loc[self.current_step,
-                                     #              'searches'],
-                                     #  self.df.loc[self.current_step,
-                                     #              'hashrate'],
-                                     #  self.df.loc[self.current_step,
-                                     #              'marketcap'],
-                                     #  self.df.loc[self.current_step,
-                                     #              'difficulty'],
-                                     #  self.df.loc[self.current_step, 's&p500'],
-                                     #  self.df.loc[self.current_step,
-                                     #              'transactionfee'],
-                                     #  self.df.loc[self.current_step,
-                                     #              'transactions'],
-                                     #  self.df.loc[self.current_step,
-                                     #              'tweet_count'],
-                                     #  self.df.loc[self.current_step,
-                                     #              'unique_adresses'],
-                                     #  self.df.loc[self.current_step, 'VIX'],
-                                     #  self.df.loc[self.current_step, 'UVYX']
+                                     self.df.loc[self.current_step,
+                                                 'receive_count'],
+                                     self.df.loc[self.current_step,
+                                                 'sent_count'],
+                                     self.df.loc[self.current_step, 'avg_fee'],
+                                     self.df.loc[self.current_step,
+                                                 'blocksize'],
+                                     self.df.loc[self.current_step,
+                                                 'btchashrate'],
+                                     self.df.loc[self.current_step,
+                                                 'OIL'],
+                                     self.df.loc[self.current_step,
+                                                 'ecr20_transfers'],
+                                     self.df.loc[self.current_step, 'GOLD'],
+                                     self.df.loc[self.current_step,
+                                                 'searches'],
+                                     self.df.loc[self.current_step,
+                                                 'hashrate'],
+                                     self.df.loc[self.current_step,
+                                                 'marketcap'],
+                                     self.df.loc[self.current_step,
+                                                 'difficulty'],
+                                     self.df.loc[self.current_step, 's&p500'],
+                                     self.df.loc[self.current_step,
+                                                 'transactionfee'],
+                                     self.df.loc[self.current_step,
+                                                 'transactions'],
+                                     self.df.loc[self.current_step,
+                                                 'tweet_count'],
+                                     self.df.loc[self.current_step,
+                                                 'unique_adresses'],
+                                     self.df.loc[self.current_step, 'VIX'],
+                                     self.df.loc[self.current_step, 'UVYX']
                                      ])
         # obs = np.concatenate(
         #     (self.market_history, self.orders_history), axis=1)
@@ -454,15 +455,20 @@ class EthereumEnv:
         '''
         # ========REWARD FROM PAPER make a reference in the code if you use this=========
         # TODO: modify penalty
+        # TODO: remove initial balance
         if action == 1 and self.balance > self.initial_balance*0.05:
             self.number_of_purchases += 1
             self.number_of_holds = 0
-            if self.number_of_purchases > 20:
-                self.reward -= self.net_worth*0.1
-        elif action == 0:
+            # if self.number_of_purchases > 40:
+            #     self.reward -= self.net_worth*0.1
+        elif action == 0 or self.balance < self.initial_balance*0.05:
             self.number_of_holds += 1
-            if self.number_of_holds > 20:
-                self.reward -= self.net_worth*0.1
+            if self.number_of_holds > 15:
+                # TODO seems to be an error here because bot is making no orders and not getting a negative reward.
+                # self.reward -= self.net_worth*0.1
+                self.reward -= 100
+                # print('too many holds')
+                # print(self.reward)
         elif action == 2 and len(self.trades) > 1 and self.trades[-1]['type'] == "sell" and self.net_worth > self.initial_balance*0.05:
             self.number_of_holds = 0
             self.number_of_purchases = 0

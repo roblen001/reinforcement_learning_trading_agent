@@ -9,6 +9,7 @@
         - Reset the test data index to not have key issues.
 '''
 import pandas as pd
+from pandas.core.frame import DataFrame
 from env import EthereumEnv, CustomAgent
 from models import Random_games, train_agent, test_agent
 from multiprocessing_env import train_multiprocessing, test_multiprocessing
@@ -34,20 +35,20 @@ if __name__ == "__main__":
     normalized_df['Date'] = Date
     df = normalized_df
 
-    lookback_window_size = 100
-    test_window = 720  # 30 days
+    lookback_window_size = 50
+    test_window = 500
     train_df = df[:-test_window-lookback_window_size]
     test_df = df[-test_window-lookback_window_size:]
 
     agent = CustomAgent(lookback_window_size=lookback_window_size,
-                        lr=0.00001, epochs=1, optimizer=Adam, batch_size=64, model="CNN")
+                        lr=0.00001, epochs=10, optimizer=Adam, batch_size=64, model="CNN")
     train_env = EthereumEnv(
         train_df, lookback_window_size=lookback_window_size)
     train_agent(train_env, agent, visualize=False,
-                train_episodes=20000, training_batch_size=500)
+                train_episodes=400000, training_batch_size=500)
 
     # train_multiprocessing(train_env, agent, train_df,
-    #                       num_worker=12, training_batch_size=500, visualize=False, EPISODES=200000)
+    #                       num_worker=12, training_batch_size=500, visualize=False, EPISODES=2000)
 
     # test_multiprocessing(EthereumEnv, CustomAgent, test_df, test_df_nomalized, num_worker=16, visualize=True,
     #                      test_episodes=1000, folder="2021_02_21_17_54_Crypto_trader", name="3263.63_Crypto_trader", comment="3 months")
