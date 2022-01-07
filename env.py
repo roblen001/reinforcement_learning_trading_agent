@@ -185,7 +185,7 @@ class CustomAgent:
 class EthereumEnv:
     """Custom Ethereum Environment that follows gym interface"""
 
-    def __init__(self, df, initial_balance=1000, lookback_window_size=50, trading_fee=0.075, debug_mode=False, normalize_value=40000):
+    def __init__(self, df, initial_balance=1000, lookback_window_size=50, trading_fee=0.07, debug_mode=False, normalize_value=40000):
         '''Initiating the parameters.
 
             - df: cleaned pandas dataframe with historical crypto data.
@@ -453,30 +453,45 @@ class EthereumEnv:
     def get_reward(self, action, current_price):
         '''Calculates the reward for the agent.
         '''
+
+        if self.episode_orders > 1 and self.episode_orders > self.prev_episode_orders:
+            self.prev_episode_orders = self.episode_orders
+            if self.trades[-1]['type'] == "buy" and self.trades[-2]['type'] == "sell":
+                reward = self.trades[-2]['total']*self.trades[-2]['current_price'] - \
+                    self.trades[-2]['total']*self.trades[-1]['current_price']
+                self.trades[-1]["Reward"] = reward
+                return reward
+            elif self.trades[-1]['type'] == "sell" and self.trades[-2]['type'] == "buy":
+                reward = self.trades[-1]['total']*self.trades[-1]['current_price'] - \
+                    self.trades[-2]['total']*self.trades[-2]['current_price']
+                self.trades[-1]["Reward"] = reward
+                return reward
+        else:
+            return 0
         # ========REWARD FROM PAPER make a reference in the code if you use this=========
         # TODO: modify penalty
         # TODO: remove initial balance
-        if action == 1 and self.balance > self.initial_balance*0.05:
-            self.number_of_purchases += 1
-            self.number_of_holds = 0
-            # if self.number_of_purchases > 40:
-            #     self.reward -= self.net_worth*0.1
-        elif action == 0 or self.balance < self.initial_balance*0.05:
-            self.number_of_holds += 1
-            if self.number_of_holds > 15:
-                # TODO seems to be an error here because bot is making no orders and not getting a negative reward.
-                # self.reward -= self.net_worth*0.1
-                self.reward -= 100
-                # print('too many holds')
-                # print(self.reward)
-        elif action == 2 and len(self.trades) > 1 and self.trades[-1]['type'] == "sell" and self.net_worth > self.initial_balance*0.05:
-            self.number_of_holds = 0
-            self.number_of_purchases = 0
-            profits = self.trades[-1]['profits']
-            # print('PROFICTS=========')
-            # print(profits)
-            self.reward = profits
-        return self.reward
+        # if action == 1 and self.balance > self.initial_balance*0.05:
+        #     self.number_of_purchases += 1
+        #     self.number_of_holds = 0
+        #     # if self.number_of_purchases > 40:
+        #     #     self.reward -= self.net_worth*0.1
+        # elif action == 0 or self.balance < self.initial_balance*0.05:
+        #     self.number_of_holds += 1
+        #     if self.number_of_holds > 15:
+        #         # TODO seems to be an error here because bot is making no orders and not getting a negative reward.
+        #         # self.reward -= self.net_worth*0.1
+        #         self.reward -= 100
+        #         # print('too many holds')
+        #         # print(self.reward)
+        # elif action == 2 and len(self.trades) > 1 and self.trades[-1]['type'] == "sell" and self.net_worth > self.initial_balance*0.05:
+        #     self.number_of_holds = 0
+        #     self.number_of_purchases = 0
+        #     profits = self.trades[-1]['profits']
+        #     # print('PROFICTS=========')
+        #     # print(profits)
+        #     self.reward = profits
+        # return self.reward
 
         # ============COMPOUNDED RETURN AGAINST BUY AND HOLD==============
         # treasury_US = pd.read_csv('10-year-treasury-bond-rate-yield-chart.csv')
