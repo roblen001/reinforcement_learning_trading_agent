@@ -42,10 +42,10 @@ if __name__ == "__main__":
 
     agent = CustomAgent(lookback_window_size=lookback_window_size,
                         lr=0.00001, epochs=10, optimizer=Adam, batch_size=64, model="CNN")
-    train_env = EthereumEnv(
-        train_df, lookback_window_size=lookback_window_size)
-    train_agent(train_env, agent, visualize=False,
-                train_episodes=400000, training_batch_size=500)
+    # train_env = EthereumEnv(
+    #     train_df, lookback_window_size=lookback_window_size)
+    # train_agent(train_env, agent, visualize=False,
+    #             train_episodes=400000, training_batch_size=500)
 
     # train_multiprocessing(train_env, agent, train_df,
     #                       num_worker=12, training_batch_size=500, visualize=False, EPISODES=2000)
@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
     # agent = CustomAgent(lookback_window_size=lookback_window_size,
     #                     lr=0.00001, epochs=1, optimizer=Adam, batch_size=128, model="LSTM")
-    # test_env = EthereumEnv(
-    #     test_df, lookback_window_size=lookback_window_size, Show_reward=False)
-    # test_agent(test_env, agent, visualize=False, test_episodes=10,
-    #            folder="2021_01_11_23_43_Crypto_trader", name="1076.27_Crypto_trader", comment="")
+    test_env = EthereumEnv(
+        test_df, lookback_window_size=lookback_window_size)
+    test_agent(test_env, agent, visualize=False, test_episodes=1,
+               folder="2022_01_14_11_01_Crypto_trader", name="221391.74_Crypto_trader", comment="")
