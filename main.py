@@ -12,7 +12,6 @@ import pandas as pd
 from pandas.core.frame import DataFrame
 from env import EthereumEnv, CustomAgent
 from models import Random_games, train_agent, test_agent
-from multiprocessing_env import train_multiprocessing, test_multiprocessing
 from tensorflow.keras.optimizers import Adam, RMSprop
 from sklearn import preprocessing
 
@@ -74,4 +73,4 @@ if __name__ == "__main__":
     test_env = EthereumEnv(
         test_df, lookback_window_size=lookback_window_size)
     test_agent(test_env, agent, visualize=False, test_episodes=1,
-               folder="2022_01_14_11_01_Crypto_trader", name="221391.74_Crypto_trader", comment="")
+               folder="2022_01_18_10_40_Crypto_trader", name="122580.55_Crypto_trader", comment="")
