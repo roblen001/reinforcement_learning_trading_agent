@@ -1,5 +1,11 @@
 reinforcement_learning_trading_agent
 
+Best trainning episode, showing potential in the strategy:
+
+![train_trades_plot_episode_142](https://user-images.githubusercontent.com/51753527/173588730-6b8a1ba5-35bf-4c6d-b0b1-f2dcb1bce548.png)
+
+
+
 For full project manuscript download "Trading Bot Manuscript version 1.05 Update Required" file in the projects root directory.
 
 Deep Reinforcement Learning Autonomous Ethereum Trading Agent
