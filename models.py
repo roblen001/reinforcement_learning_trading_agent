@@ -1,16 +1,10 @@
-'''Methods the agent uses to trade in the environment
+'''Agent trading strategies.
 
-    modified from: https://github.com/pythonlessons/RL-Bitcoin-trading-bot
-    author: Roberto Lentini
-    email: roberto.lentini@mail.utoronto.ca
-    date: November 24th 2021
-
-    modifications:
-        - Added function descriptions.
-        - Added performance visualization.
-        - Added tensorboard reward visualization.
-        - Added trading plot visualization every certain amount of episodes.
+    Modified from: https://github.com/pythonlessons/RL-Bitcoin-trading-bot
+    Author: Roberto Lentini
+    Email: roberto.lentini@mail.utoronto.ca
 '''
+
 import numpy as np
 from utils import performance_plots, trading_chart
 import tensorflow as tf
@@ -20,15 +14,16 @@ from tensorflow.keras import backend as K
 from collections import deque
 import pandas as pd
 from datetime import datetime as dt
-# ================== RANDOM ORDERS =================
-
 
 def Random_games(env, visualize, train_episodes=50, training_batch_size=1000, comment=""):
-    '''The agent picks times to sell and buy the currency at random.
+    '''The agent picks times to sell and buy the currency at random. This is the baseline method
+        to test whether the agent using our strategy is at a minimum outperforming a random buy-sell pattern.
 
-        - env: the gym environment the agent will learn to act in.
-        - train_episodes: the number of episodes the agent will use to train.
-        - training_batch_size: int of the max ammount of steps per episode.
+        Args:
+            env: The gym environment the agent will learn to act in.
+            train_episodes (int): The number of episodes the agent will use to train.
+            training_batch_size (int): Max number of steps per episode.
+            comment (str): Comment for the test results.
     '''
     no_profit_episodes = 0
     average_orders = 0
@@ -48,50 +43,25 @@ def Random_games(env, visualize, train_episodes=50, training_batch_size=1000, co
             if env.current_step == env.end_step:
                 average_orders += env.episode_orders
                 average_net_worth += env.net_worth
-                # for graphing
-                avg_episode_reward_list.append(
-                    env.episode_reward/training_batch_size)
-                # self.net_worth is the final networth after each episode
+                avg_episode_reward_list.append(env.episode_reward / training_batch_size)
                 net_worth_list.append(env.net_worth)
                 if env.net_worth < env.initial_balance:
-                    # calculate episode count where we had negative profit through episode
                     no_profit_episodes += 1
-                    print("episode: {}, net_worth: {}, average_net_worth: {}, orders: {}".format(
-                        episode, env.net_worth, average_net_worth/(episode+1), env.episode_orders))
-
+                    print(f"episode: {episode}, net_worth: {env.net_worth}, average_net_worth: {average_net_worth/(episode+1)}, orders: {env.episode_orders}")
                 break
-        # save graph of historical trades made by agent
         if episode % 5 == 0:
             orders_data = pd.DataFrame.from_dict(env.trades)
-            trading_chart(env, order_data=orders_data,
-                          episode=episode, price_data=env.df, filename="Random_Model", reward_annotations=False)
-    # save test results to test_results.txt file
+            trading_chart(env, order_data=orders_data, episode=episode, price_data=env.df, filename="Random_Model", reward_annotations=False)
     with open("test_results.txt", "a+") as results:
         current_date = dt.now().strftime('%Y-%m-%d %H:%M')
-        results.write(
-            f'{current_date}, {"Random games"}, test episodes:{train_episodes}')
-        results.write(
-            f', net worth:{average_net_worth/(episode+1)}, orders per episode:{average_orders/train_episodes}')
-        results.write(
-            f', no profit episodes:{no_profit_episodes}, comment: {comment}\n')
-    performance_plots(avg_episode_reward_list,
-                      net_worth_list, train_episodes)
+        results.write(f'{current_date}, {"Random games"}, test episodes:{train_episodes}')
+        results.write(f', net worth:{average_net_worth/(episode+1)}, orders per episode:{average_orders/train_episodes}')
+        results.write(f', no profit episodes:{no_profit_episodes}, comment: {comment}\n')
+    performance_plots(avg_episode_reward_list, net_worth_list, train_episodes)
 
-    print("average_net_worth:", average_net_worth/train_episodes)
+    print("average_net_worth:", average_net_worth / train_episodes)
 
-
-# ================== PROXIMAL POLICY OPTIMIZATION MODEL =================
-'''About the model: PPO is a actor critc model (A2C) with a handful of changes:
-    1/ Trains by using a small batch of expiriences. The batch is used to
-        update the policy. A new batch is then sampled and the process continues.
-        This slowly changes the policy to a better version.
-    2/ New formula to estimate policy gradient. Now uses the ratio between
-        between the new and the old policy scaled by the advantage.
-    3/ New formula for estimating advantage.
-'''
-
-# tf.config.experimental_run_functions_eagerly(True) # used for debuging and development
-# usually using this for fastest performance
+# Leads to faster performance
 tf.compat.v1.disable_eager_execution()
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -102,34 +72,46 @@ if len(gpus) > 0:
     except RuntimeError:
         pass
 
-# ================== PROXIMAL POLICY OPTIMIZATION SHARED MODEL =================
-
-
 class Shared_Model:
-    '''An achitecture where the data goes through a shared model
+    '''An architecture where the data goes through a shared model
         prior to going through the actor and critic models.
+
+        About the model: PPO is an actor-critic model (A2C) with a handful of changes:
+        1/ Trains by using a small batch of experiences. The batch is used to
+            update the policy. A new batch is then sampled and the process continues.
+            This slowly changes the policy to a better version.
+        2/ New formula to estimate policy gradient. Now uses the ratio between
+            the new and the old policy scaled by the advantage.
+        3/ New formula for estimating advantage.
     '''
 
     def __init__(self, input_shape, action_space, lr, optimizer, model="Dense"):
+        '''Initialize the shared model with the given parameters.
+
+        Args:
+            input_shape (tuple): Shape of the input data.
+            action_space (int): Size of the action space.
+            lr (float): Learning rate for the optimizer.
+            optimizer: Optimizer for training the model.
+            model (str): Model type for the agent.
+        '''
         X_input = Input(input_shape)
         self.action_space = action_space
 
-        # Shared CNN layers:
+        # Shared CNN layers
         if model == "CNN":
-            X = Conv1D(filters=64, kernel_size=6, padding="same",
-                       activation="tanh")(X_input)
+            X = Conv1D(filters=64, kernel_size=6, padding="same", activation="tanh")(X_input)
             X = MaxPooling1D(pool_size=2)(X)
-            X = Conv1D(filters=32, kernel_size=3,
-                       padding="same", activation="tanh")(X)
+            X = Conv1D(filters=32, kernel_size=3, padding="same", activation="tanh")(X)
             X = MaxPooling1D(pool_size=2)(X)
             X = Flatten()(X)
 
-        # Shared LSTM layers:
+        # Shared LSTM layers
         elif model == "LSTM":
             X = LSTM(512, return_sequences=True)(X_input)
             X = LSTM(256)(X)
 
-        # Shared Dense layers:
+        # Shared Dense layers
         else:
             X = Flatten()(X_input)
             X = Dense(512, activation="relu")(X)
@@ -141,8 +123,7 @@ class Shared_Model:
         value = Dense(1, activation=None)(V)
 
         self.Critic = Model(inputs=X_input, outputs=value)
-        self.Critic.compile(loss=self.critic_PPO2_loss,
-                            optimizer=optimizer(lr=lr))
+        self.Critic.compile(loss=self.critic_PPO2_loss, optimizer=optimizer(lr=lr))
 
         # Actor model
         A = Dense(512, activation="relu")(X)
@@ -155,9 +136,16 @@ class Shared_Model:
         print(self.Actor.summary())
 
     def ppo_loss(self, y_true, y_pred):
-        # Defined in https://arxiv.org/abs/1707.06347
-        advantages, prediction_picks, actions = y_true[:, :1], y_true[:,
-                                                                      1:1+self.action_space], y_true[:, 1+self.action_space:]
+        '''Calculate the PPO loss.
+
+        Args:
+            y_true: True labels.
+            y_pred: Predicted labels.
+
+        Returns:
+            Loss value.
+        '''
+        advantages, prediction_picks, actions = y_true[:, :1], y_true[:, 1:1 + self.action_space], y_true[:, 1 + self.action_space:]
         LOSS_CLIPPING = 0.2
         ENTROPY_LOSS = 0.001
 
@@ -170,8 +158,7 @@ class Shared_Model:
         ratio = K.exp(K.log(prob) - K.log(old_prob))
 
         p1 = ratio * advantages
-        p2 = K.clip(ratio, min_value=1 - LOSS_CLIPPING,
-                    max_value=1 + LOSS_CLIPPING) * advantages
+        p2 = K.clip(ratio, min_value=1 - LOSS_CLIPPING, max_value=1 + LOSS_CLIPPING) * advantages
 
         actor_loss = -K.mean(K.minimum(p1, p2))
 
@@ -183,34 +170,66 @@ class Shared_Model:
         return total_loss
 
     def actor_predict(self, state):
+        '''Predict the action using the actor model.
+
+        Args:
+            state (ndarray): The current state.
+
+        Returns:
+            ndarray: Predicted action.
+        '''
         return self.Actor.predict(state)
 
     def critic_PPO2_loss(self, y_true, y_pred):
-        value_loss = K.mean((y_true - y_pred) ** 2)  # standard PPO loss
+        '''Calculate the critic loss.
+
+        Args:
+            y_true: True labels.
+            y_pred: Predicted labels.
+
+        Returns:
+            Loss value.
+        '''
+        value_loss = K.mean((y_true - y_pred) ** 2)
         return value_loss
 
     def critic_predict(self, state):
+        '''Predict the value using the critic model.
+
+        Args:
+            state (ndarray): The current state.
+
+        Returns:
+            ndarray: Predicted value.
+        '''
         return self.Critic.predict([state, np.zeros((state.shape[0], 1))])
 
-# ================== PROXIMAL POLICY OPTIMIZATION ACTOR MODEL =================
-
-
 class Actor_Model:
-    '''The actor neural network decides what action to take based on
-        a certain policy.
+    '''The actor is responsible for selecting actions based on the current policy. It maps states to a specific action to take.
+        In neural network terms, the actor outputs a probability distribution over possible actions given the current state (in a discrete action space) 
+        or directly outputs the action values (in a continuous action space).
+        
+        About the model: PPO is an actor-critic model (A2C) with a handful of changes:
+        1/ Trains by using a small batch of experiences. The batch is used to
+            update the policy. A new batch is then sampled and the process continues.
+            This slowly changes the policy to a better version.
+        2/ New formula to estimate policy gradient. Now uses the ratio between
+            the new and the old policy scaled by the advantage.
+        3/ New formula for estimating advantage.
     '''
 
     def __init__(self, input_shape, action_space, lr, optimizer):
-        '''Initializing parameters
+        '''Initialize the actor model with the given parameters.
 
-            - input_shape: shape of the observation space.
-            - action_space: shape of the action space.
+        Args:
+            input_shape (tuple): Shape of the input data.
+            action_space (int): Size of the action space.
+            lr (float): Learning rate for the optimizer.
+            optimizer: Optimizer for training the model.
         '''
         X_input = Input(input_shape)
         self.action_space = action_space
-        # 512 x 256 x 64 three layer neural network
-        X = Flatten(input_shape=input_shape)(
-            X_input)  # making input shape (n,1)
+        X = Flatten(input_shape=input_shape)(X_input)
         X = Dense(512, activation="relu")(X)
         X = Dense(256, activation="relu")(X)
         X = Dense(64, activation="relu")(X)
@@ -219,9 +238,16 @@ class Actor_Model:
         self.Actor.compile(loss=self.ppo_loss, optimizer=optimizer(lr=lr))
 
     def ppo_loss(self, y_true, y_pred):
-        # Defined in https://arxiv.org/abs/1707.06347
-        advantages, prediction_picks, actions = y_true[:, :1], y_true[:,
-                                                                      1: 1+self.action_space], y_true[:, 1+self.action_space:]
+        '''Calculate the PPO loss.
+
+        Args:
+            y_true: True labels.
+            y_pred: Predicted labels.
+
+        Returns:
+            Loss value.
+        '''
+        advantages, prediction_picks, actions = y_true[:, :1], y_true[:, 1:1 + self.action_space], y_true[:, 1 + self.action_space:]
         LOSS_CLIPPING = 0.2
         ENTROPY_LOSS = 0.01
 
@@ -234,8 +260,7 @@ class Actor_Model:
         ratio = K.exp(K.log(prob) - K.log(old_prob))
 
         p1 = ratio * advantages
-        p2 = K.clip(ratio, min_value=1 - LOSS_CLIPPING,
-                    max_value=1 + LOSS_CLIPPING) * advantages
+        p2 = K.clip(ratio, min_value=1 - LOSS_CLIPPING, max_value=1 + LOSS_CLIPPING) * advantages
 
         actor_loss = -K.mean(K.minimum(p1, p2))
 
@@ -247,15 +272,40 @@ class Actor_Model:
         return total_loss
 
     def predict(self, state):
+        '''Predict the action using the actor model.
+
+        Args:
+            state (ndarray): The current state.
+
+        Returns:
+            ndarray: Predicted action.
+        '''
         return self.Actor.predict(state)
 
-# ================== PROXIMAL POLICY OPTIMIZATION CRITIC MODEL =================
-
-
 class Critic_Model:
-    def __init__(self, input_shape, action_space, lr, optimizer):
-        X_input = Input(input_shape)
+    '''The critic evaluates the action taken by the actor by computing a value function. 
+        The critic provides feedback to the actor about how good or bad the action was, 
+        which helps the actor update its policy to select better actions in the future.
 
+        About the model: PPO is an actor-critic model (A2C) with a handful of changes:
+        1/ Trains by using a small batch of experiences. The batch is used to
+            update the policy. A new batch is then sampled and the process continues.
+            This slowly changes the policy to a better version.
+        2/ New formula to estimate policy gradient. Now uses the ratio between
+            the new and the old policy scaled by the advantage.
+        3/ New formula for estimating advantage.
+    '''
+
+    def __init__(self, input_shape, action_space, lr, optimizer):
+        '''Initialize the critic model with the given parameters.
+
+        Args:
+            input_shape (tuple): Shape of the input data.
+            action_space (int): Size of the action space.
+            lr (float): Learning rate for the optimizer.
+            optimizer: Optimizer for training the model.
+        '''
+        X_input = Input(input_shape)
         V = Flatten(input_shape=input_shape)(X_input)
         V = Dense(512, activation="relu")(V)
         V = Dense(256, activation="relu")(V)
@@ -263,27 +313,45 @@ class Critic_Model:
         value = Dense(1, activation=None)(V)
 
         self.Critic = Model(inputs=X_input, outputs=value)
-        self.Critic.compile(loss=self.critic_PPO2_loss,
-                            optimizer=optimizer(lr=lr))
+        self.Critic.compile(loss=self.critic_PPO2_loss, optimizer=optimizer(lr=lr))
 
     def critic_PPO2_loss(self, y_true, y_pred):
-        value_loss = K.mean((y_true - y_pred) ** 2)  # standard PPO loss
+        '''Calculate the critic loss.
+
+        Args:
+            y_true: True labels.
+            y_pred: Predicted labels.
+
+        Returns:
+            Loss value.
+        '''
+        value_loss = K.mean((y_true - y_pred) ** 2)
         return value_loss
 
     def predict(self, state):
-        return self.Critic.predict([state, np.zeros((state.shape[0], 1))])
+        '''Predict the value using the critic model.
 
+        Args:
+            state (ndarray): The current state.
+
+        Returns:
+            ndarray: Predicted value.
+        '''
+        return self.Critic.predict([state, np.zeros((state.shape[0], 1))])
 
 def train_agent(env, agent, visualize=False, train_episodes=50, training_batch_size=500):
     '''Trains the agent using PPO.
 
-        - train_episodes: int of the number of episodes to train the agent.
-        - training_batch_size: int of the max ammount of steps per episode. 
+        Args:
+            env: The gym environment the agent will learn to act in.
+            agent: The agent to be trained.
+            visualize (bool): Flag to enable visualization.
+            train_episodes (int): Number of episodes to train the agent.
+            training_batch_size (int): Max number of steps per episode.
     '''
-    agent.create_writer(env.initial_balance, env.normalize_value,
-                        train_episodes)  # create TensorBoard writer
-    total_average = deque(maxlen=100)  # save recent 100 episodes net worth
-    best_average = -1000000000000000  # used to track best average net worth
+    agent.create_writer(env.initial_balance, env.normalize_value, train_episodes)
+    total_average = deque(maxlen=100)
+    best_average = -1000000000000000
     for episode in range(train_episodes):
         state = env.reset(env_steps_size=training_batch_size)
 
@@ -301,34 +369,37 @@ def train_agent(env, agent, visualize=False, train_episodes=50, training_batch_s
             dones.append(done)
             predictions.append(prediction)
             state = next_state
-        a_loss, c_loss = agent.replay(
-            states, actions, rewards, predictions, dones, next_states)
+        a_loss, c_loss = agent.replay(states, actions, rewards, predictions, dones, next_states)
         total_average.append(env.episode_reward)
         average = np.average(total_average)
 
         agent.writer.add_scalar('Data/average net_worth', average, episode)
-        agent.writer.add_scalar('Data/episode_orders',
-                                env.episode_orders, episode)
+        agent.writer.add_scalar('Data/episode_orders', env.episode_orders, episode)
 
-        print('episode: ' + str(episode) + ' net worth: ' + str(env.net_worth)
-              + ' n_orders: ' + str(env.episode_orders) + ' reward: ' + str(env.episode_reward))
+        print(f'episode: {episode} net worth: {env.net_worth} n_orders: {env.episode_orders} reward: {env.episode_reward}')
         if train_episodes > len(total_average):
             if best_average < env.episode_reward and env.episode_orders > 2:
                 orders_data = pd.DataFrame.from_dict(env.trades)
                 if len(orders_data) > 0:
-                    trading_chart(env, order_data=orders_data,
-                                  episode=episode, filename="train_", price_data=env.df, reward_annotations=False)
+                    trading_chart(env, order_data=orders_data, episode=episode, filename="train_", price_data=env.df, reward_annotations=False)
                 best_average = env.episode_reward
                 print("Saving model")
-                agent.save(score="{:.2f}".format(best_average), args=[
-                           episode, average, env.episode_orders, a_loss, c_loss])
+                agent.save(score="{:.2f}".format(best_average), args=[episode, average, env.episode_orders, a_loss, c_loss])
             agent.save()
 
     agent.end_training_log()
 
-
 def test_agent(env, agent, visualize=True, test_episodes=10, folder="", name="Crypto_trader", comment=""):
     '''Test agent on unseen data.
+
+        Args:
+            env: The gym environment the agent will be tested in.
+            agent: The agent to be tested.
+            visualize (bool): Flag to enable visualization.
+            test_episodes (int): Number of episodes to test the agent.
+            folder (str): Folder containing the saved model.
+            name (str): Name of the saved model.
+            comment (str): Comment for the test results.
     '''
     agent.load(folder, name)
     average_net_worth = 0
@@ -344,25 +415,17 @@ def test_agent(env, agent, visualize=True, test_episodes=10, folder="", name="Cr
                 average_net_worth += env.net_worth
                 average_orders += env.episode_orders
                 if env.net_worth < env.initial_balance:
-                    # calculate episode count where we had negative profit through episode
                     no_profit_episodes += 1
-                print("episode: {:<5}, net_worth: {:<7.2f}, average_net_worth: {:<7.2f}, orders: {}".format(
-                    episode, env.net_worth, average_net_worth/(episode+1), env.episode_orders))
+                print(f"episode: {episode:<5}, net_worth: {env.net_worth:<7.2f}, average_net_worth: {average_net_worth/(episode+1):<7.2f}, orders: {env.episode_orders}")
                 break
-        # save graph of historical trades made by agent
         orders_data = pd.DataFrame.from_dict(env.trades)
         if len(orders_data) > 0:
-            trading_chart(env, order_data=orders_data,
-                          episode=episode, price_data=env.df)
+            trading_chart(env, order_data=orders_data, episode=episode, price_data=env.df)
 
-    print("average {} episodes agent net_worth: {}, orders: {}".format(
-        test_episodes, average_net_worth/test_episodes, average_orders/test_episodes))
-    print("No profit episodes: {}".format(no_profit_episodes))
-    # save test results to test_results.txt file
+    print(f"average {test_episodes} episodes agent net_worth: {average_net_worth/test_episodes}, orders: {average_orders/test_episodes}")
+    print(f"No profit episodes: {no_profit_episodes}")
     with open("test_results.txt", "a+") as results:
         current_date = dt.now().strftime('%Y-%m-%d %H:%M')
         results.write(f'{current_date}, {name}, test episodes:{test_episodes}')
-        results.write(
-            f', net worth:{average_net_worth/(episode+1)}, orders per episode:{average_orders/test_episodes}')
-        results.write(
-            f', no profit episodes:{no_profit_episodes}, model: {agent.model}, comment: {comment}\n')
+        results.write(f', net worth:{average_net_worth/(episode+1)}, orders per episode:{average_orders/test_episodes}')
+        results.write(f', no profit episodes:{no_profit_episodes}, model: {agent.model}, comment: {comment}\n')

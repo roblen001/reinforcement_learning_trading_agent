@@ -1,13 +1,10 @@
-'''File which is ran to see the agent in action
+'''File which is run to see the agent in action.
 
-    modified from: https://github.com/pythonlessons/RL-Bitcoin-trading-bot
-    author: Roberto Lentini
-    email: roberto.lentini@mail.utoronto.ca
-    date: November 24th 2021
-
-    modifications:
-        - Reset the test data index to not have key issues.
+    Modified from: https://github.com/pythonlessons/RL-Bitcoin-trading-bot
+    Author: Roberto Lentini
+    Email: roberto.lentini@mail.utoronto.ca
 '''
+
 import pandas as pd
 from pandas.core.frame import DataFrame
 from env import EthereumEnv, CustomAgent
@@ -16,15 +13,22 @@ from tensorflow.keras.optimizers import Adam, RMSprop
 from sklearn import preprocessing
 
 if __name__ == "__main__":
+    # Read the dataset
     df = pd.read_csv('cryptoanalysis_data.csv', index_col=False)
+    
+    # Rename columns for consistency
     df = df.rename(columns={'price': 'Close'})
     df = df.rename(columns={'date': 'Date'})
-    # TODO: going to need to add better data normalization
-    # can also use standarization
+    
+    # Extract the 'Close' column and remove it from the dataframe
     Close = list(df['Close'])
     df = df.drop(['Close'], axis=1)
+    
+    # Extract the 'Date' column and remove it from the dataframe
     Date = df['Date']
     df = df.drop(['Date'], axis=1)
+    
+    # Normalize the data
     column_maxes = df.max()
     df_max = column_maxes.max()
     column_mins = df.min()
@@ -34,13 +38,19 @@ if __name__ == "__main__":
     normalized_df['Date'] = Date
     df = normalized_df
 
+    # Define the lookback window size and test window size
     lookback_window_size = 50
     test_window = 500
-    train_df = df[:-test_window-lookback_window_size]
-    test_df = df[-test_window-lookback_window_size:]
 
+    # Split the dataframe into training and testing sets
+    train_df = df[:-test_window - lookback_window_size]
+    test_df = df[-test_window - lookback_window_size:]
+
+    # Create a custom trading agent
     agent = CustomAgent(lookback_window_size=lookback_window_size,
                         lr=0.00001, epochs=10, optimizer=Adam, batch_size=64, model="CNN")
+    
+     
     # train_env = EthereumEnv(
     #     train_df, lookback_window_size=lookback_window_size)
     # train_agent(train_env, agent, visualize=False,
@@ -70,7 +80,10 @@ if __name__ == "__main__":
 
     # agent = CustomAgent(lookback_window_size=lookback_window_size,
     #                     lr=0.00001, epochs=1, optimizer=Adam, batch_size=128, model="LSTM")
-    test_env = EthereumEnv(
-        test_df, lookback_window_size=lookback_window_size)
+ 
+    # Create a testing environment
+    test_env = EthereumEnv(test_df, lookback_window_size=lookback_window_size)
+    
+    # Test the agent in the environment
     test_agent(test_env, agent, visualize=False, test_episodes=1,
                folder="2022_01_18_10_40_Crypto_trader", name="122580.55_Crypto_trader", comment="")
