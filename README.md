@@ -21,8 +21,8 @@ A plot of the testing result:
 
 ## Table of Contents
 
-- [CHAPTER 1: PROJECT INTRODUCTION](#Chapter-1:-Project-Introduction)
-  - [SECTION 1.1 INTRODUCTION](#Section-1.1:-Introduction)
+- [CHAPTER 1: PROJECT INTRODUCTION](#Chapter-1-Project-Introduction)
+  - [SECTION 1.1 INTRODUCTION](#Section-11-Introduction)
     - [Subsection 1.1.a Reinforcement Learning](#reinforcement-learning)
     - [Subsection 1.1.b Reinforcement Learning in Finance](#Reinforcement-Learning-in-Finance)
   - [SECTION 1.2 ALGORITHMS](#section-12-algorithms)
